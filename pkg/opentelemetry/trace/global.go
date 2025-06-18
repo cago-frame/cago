@@ -3,8 +3,8 @@ package trace
 import (
 	"context"
 
-	"github.com/codfrm/cago/configs"
-	"github.com/codfrm/cago/server/mux"
+	"github.com/cago-frame/cago/configs"
+	"github.com/cago-frame/cago/server/mux"
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"

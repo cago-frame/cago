@@ -6,7 +6,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/codfrm/cago/internal/cmd/gen/utils"
+	"github.com/cago-frame/cago/internal/cmd/gen/utils"
 	"github.com/go-openapi/spec"
 )
 

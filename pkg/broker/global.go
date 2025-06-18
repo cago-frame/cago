@@ -3,16 +3,16 @@ package broker
 import (
 	"context"
 
-	"github.com/codfrm/cago"
-	"github.com/codfrm/cago/configs"
-	broker2 "github.com/codfrm/cago/pkg/broker/broker"
-	"github.com/codfrm/cago/pkg/opentelemetry/trace"
+	"github.com/cago-frame/cago"
+	"github.com/cago-frame/cago/configs"
+	broker2 "github.com/cago-frame/cago/pkg/broker/broker"
+	"github.com/cago-frame/cago/pkg/opentelemetry/trace"
 	trace2 "go.opentelemetry.io/otel/trace"
 )
 
 var broker broker2.Broker
 
-const instrumName = "github.com/codfrm/cago/pkg/broker"
+const instrumName = "github.com/cago-frame/cago/pkg/broker"
 
 // Broker 消息队列组件
 func Broker(ctx context.Context, config *configs.Config) error {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/codfrm/cago/pkg/logger"
+	"github.com/cago-frame/cago/pkg/logger"
 	"go.uber.org/zap"
 )
 

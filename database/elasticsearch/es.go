@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/codfrm/cago/configs"
+	"github.com/cago-frame/cago/configs"
 
 	"github.com/elastic/go-elasticsearch/v8"
 )

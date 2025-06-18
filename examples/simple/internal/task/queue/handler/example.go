@@ -3,10 +3,10 @@ package handler
 import (
 	"context"
 
-	"github.com/codfrm/cago/examples/simple/internal/task/queue"
-	"github.com/codfrm/cago/examples/simple/internal/task/queue/message"
+	"github.com/cago-frame/cago/examples/simple/internal/task/queue"
+	"github.com/cago-frame/cago/examples/simple/internal/task/queue/message"
 
-	"github.com/codfrm/cago/pkg/logger"
+	"github.com/cago-frame/cago/pkg/logger"
 	"go.uber.org/zap"
 )
 

@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/codfrm/cago/middleware/permission"
-	"github.com/codfrm/cago/middleware/permission/storage"
+	"github.com/cago-frame/cago/middleware/permission"
+	"github.com/cago-frame/cago/middleware/permission/storage"
 
 	"github.com/stretchr/testify/assert"
 )

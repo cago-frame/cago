@@ -3,8 +3,8 @@ package metric
 import (
 	"context"
 
-	"github.com/codfrm/cago/configs"
-	"github.com/codfrm/cago/server/mux"
+	"github.com/cago-frame/cago/configs"
+	"github.com/cago-frame/cago/server/mux"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"

@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/codfrm/cago/configs"
-	"github.com/codfrm/cago/pkg/gogo"
-	"github.com/codfrm/cago/pkg/logger"
+	"github.com/cago-frame/cago/configs"
+	"github.com/cago-frame/cago/pkg/gogo"
+	"github.com/cago-frame/cago/pkg/logger"
 	"go.uber.org/zap"
 )
 

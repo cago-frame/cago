@@ -6,11 +6,11 @@ import (
 	"testing"
 
 	"github.com/alicebob/miniredis/v2"
-	"github.com/codfrm/cago/database/cache"
-	"github.com/codfrm/cago/database/cache/memory"
-	redis2 "github.com/codfrm/cago/database/redis"
-	"github.com/codfrm/cago/pkg/iam"
-	"github.com/codfrm/cago/pkg/iam/authn"
+	"github.com/cago-frame/cago/database/cache"
+	"github.com/cago-frame/cago/database/cache/memory"
+	redis2 "github.com/cago-frame/cago/database/redis"
+	"github.com/cago-frame/cago/pkg/iam"
+	"github.com/cago-frame/cago/pkg/iam/authn"
 	"github.com/redis/go-redis/v9"
 )
 

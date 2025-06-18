@@ -13,10 +13,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/codfrm/cago/pkg/utils"
-	"github.com/codfrm/cago/server/mux"
+	"github.com/cago-frame/cago/pkg/utils"
+	"github.com/cago-frame/cago/server/mux"
 
-	"github.com/codfrm/cago/pkg/utils/httputils"
+	"github.com/cago-frame/cago/pkg/utils/httputils"
 )
 
 type ClientOptions struct {

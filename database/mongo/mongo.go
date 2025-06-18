@@ -3,8 +3,8 @@ package mongo
 import (
 	"context"
 
-	"github.com/codfrm/cago/configs"
-	"github.com/codfrm/cago/pkg/opentelemetry/trace"
+	"github.com/cago-frame/cago/configs"
+	"github.com/cago-frame/cago/pkg/opentelemetry/trace"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo"

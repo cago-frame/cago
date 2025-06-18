@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/codfrm/cago/internal/cmd"
-	"github.com/codfrm/cago/internal/cmd/gen"
-	_ "github.com/codfrm/cago/pkg/component"
+	"github.com/cago-frame/cago/internal/cmd"
+	"github.com/cago-frame/cago/internal/cmd/gen"
+	_ "github.com/cago-frame/cago/pkg/component"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

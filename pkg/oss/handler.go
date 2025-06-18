@@ -3,14 +3,14 @@ package oss
 import (
 	"time"
 
-	"github.com/codfrm/cago"
-	"github.com/codfrm/cago/pkg/opentelemetry/trace"
-	"github.com/codfrm/cago/pkg/utils/wrap"
+	"github.com/cago-frame/cago"
+	"github.com/cago-frame/cago/pkg/opentelemetry/trace"
+	"github.com/cago-frame/cago/pkg/utils/wrap"
 	"go.opentelemetry.io/otel/attribute"
 	trace2 "go.opentelemetry.io/otel/trace"
 )
 
-const instrumName = "github.com/codfrm/cago/pkg/oss"
+const instrumName = "github.com/cago-frame/cago/pkg/oss"
 
 func newWrap() *wrap.Wrap {
 	w := wrap.New()

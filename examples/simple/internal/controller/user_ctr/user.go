@@ -5,8 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	api "github.com/codfrm/cago/examples/simple/internal/api/user"
-	"github.com/codfrm/cago/examples/simple/internal/service/user_svc"
+	api "github.com/cago-frame/cago/examples/simple/internal/api/user"
+	"github.com/cago-frame/cago/examples/simple/internal/service/user_svc"
 )
 
 type User struct {

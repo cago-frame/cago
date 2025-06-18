@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/codfrm/cago/pkg/logger"
+	"github.com/cago-frame/cago/pkg/logger"
 
-	"github.com/codfrm/cago/pkg/broker/broker"
+	"github.com/cago-frame/cago/pkg/broker/broker"
 	"github.com/nsqio/go-nsq"
 	"go.uber.org/zap"
 )

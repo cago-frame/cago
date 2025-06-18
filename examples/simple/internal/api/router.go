@@ -3,11 +3,11 @@ package api
 import (
 	"context"
 
-	_ "github.com/codfrm/cago/examples/simple/docs"
-	"github.com/codfrm/cago/examples/simple/internal/controller/example_ctr"
-	"github.com/codfrm/cago/examples/simple/internal/controller/user_ctr"
-	"github.com/codfrm/cago/examples/simple/internal/service/user_svc"
-	"github.com/codfrm/cago/server/mux"
+	_ "github.com/cago-frame/cago/examples/simple/docs"
+	"github.com/cago-frame/cago/examples/simple/internal/controller/example_ctr"
+	"github.com/cago-frame/cago/examples/simple/internal/controller/user_ctr"
+	"github.com/cago-frame/cago/examples/simple/internal/service/user_svc"
+	"github.com/cago-frame/cago/server/mux"
 )
 
 // Router 路由

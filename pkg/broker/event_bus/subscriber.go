@@ -3,8 +3,8 @@ package event_bus
 import (
 	"context"
 
-	"github.com/codfrm/cago/pkg/broker/broker"
-	"github.com/codfrm/cago/pkg/logger"
+	"github.com/cago-frame/cago/pkg/broker/broker"
+	"github.com/cago-frame/cago/pkg/logger"
 	"go.uber.org/zap"
 )
 

@@ -3,10 +3,10 @@ package task
 import (
 	"context"
 
-	"github.com/codfrm/cago/configs"
-	"github.com/codfrm/cago/examples/simple/internal/task/crontab"
-	"github.com/codfrm/cago/examples/simple/internal/task/queue/handler"
-	"github.com/codfrm/cago/server/cron"
+	"github.com/cago-frame/cago/configs"
+	"github.com/cago-frame/cago/examples/simple/internal/task/crontab"
+	"github.com/cago-frame/cago/examples/simple/internal/task/queue/handler"
+	"github.com/cago-frame/cago/server/cron"
 )
 
 type Handler interface {

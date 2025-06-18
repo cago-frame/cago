@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/codfrm/cago/configs"
-	"github.com/codfrm/cago/pkg/logger"
+	"github.com/cago-frame/cago/configs"
+	"github.com/cago-frame/cago/pkg/logger"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

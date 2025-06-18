@@ -1,8 +1,8 @@
 package user
 
 import (
-	"github.com/codfrm/cago/pkg/iam/sessions/manager"
-	"github.com/codfrm/cago/server/mux"
+	"github.com/cago-frame/cago/pkg/iam/sessions/manager"
+	"github.com/cago-frame/cago/server/mux"
 )
 
 // RegisterRequest 注册

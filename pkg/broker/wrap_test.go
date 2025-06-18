@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	broker2 "github.com/codfrm/cago/pkg/broker/broker"
-	wrap2 "github.com/codfrm/cago/pkg/utils/wrap"
+	broker2 "github.com/cago-frame/cago/pkg/broker/broker"
+	wrap2 "github.com/cago-frame/cago/pkg/utils/wrap"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -3,7 +3,7 @@ package crontab
 import (
 	"context"
 
-	"github.com/codfrm/cago/pkg/logger"
+	"github.com/cago-frame/cago/pkg/logger"
 )
 
 func Example(ctx context.Context) error {

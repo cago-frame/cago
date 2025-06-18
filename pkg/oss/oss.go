@@ -3,9 +3,9 @@ package oss
 import (
 	"context"
 
-	"github.com/codfrm/cago/configs"
-	"github.com/codfrm/cago/pkg/oss/minio"
-	"github.com/codfrm/cago/pkg/oss/oss"
+	"github.com/cago-frame/cago/configs"
+	"github.com/cago-frame/cago/pkg/oss/minio"
+	"github.com/cago-frame/cago/pkg/oss/oss"
 )
 
 type Type string

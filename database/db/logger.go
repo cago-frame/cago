@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	logger2 "github.com/codfrm/cago/pkg/logger"
+	logger2 "github.com/cago-frame/cago/pkg/logger"
 	"go.uber.org/zap"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/utils"

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/codfrm/cago/internal/cmd/gen/utils"
+	"github.com/cago-frame/cago/internal/cmd/gen/utils"
 )
 
 const controllerHeaderTpl = `package {PkgName}

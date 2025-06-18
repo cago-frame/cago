@@ -3,7 +3,7 @@ package mongomigrate
 import (
 	"context"
 
-	"github.com/codfrm/cago/database/mongo"
+	"github.com/cago-frame/cago/database/mongo"
 )
 
 // MigrateFunc 数据库迁移函数

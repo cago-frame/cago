@@ -1,8 +1,8 @@
 package configs
 
 import (
-	"github.com/codfrm/cago/configs/file"
-	"github.com/codfrm/cago/configs/source"
+	"github.com/cago-frame/cago/configs/file"
+	"github.com/cago-frame/cago/configs/source"
 )
 
 type NewSource func(cfg *Config, serialization file.Serialization) (source.Source, error)

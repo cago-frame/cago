@@ -1,6 +1,6 @@
 package example
 
-import "github.com/codfrm/cago/server/mux"
+import "github.com/cago-frame/cago/server/mux"
 
 // PingRequest ping
 type PingRequest struct {

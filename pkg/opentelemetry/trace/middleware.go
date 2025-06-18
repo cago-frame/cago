@@ -22,7 +22,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/codfrm/cago/pkg/logger"
+	"github.com/cago-frame/cago/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -37,7 +37,7 @@ type traceContextKeyType int
 const tracerKey traceContextKeyType = iota
 
 const (
-	tracerName = "github.com/codfrm/cago/pkg/trace"
+	tracerName = "github.com/cago-frame/cago/pkg/trace"
 )
 
 func TracerFromContext(ctx context.Context) trace.Tracer {

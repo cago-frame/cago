@@ -3,7 +3,7 @@ package manager
 import (
 	"testing"
 
-	"github.com/codfrm/cago/database/cache/memory"
+	"github.com/cago-frame/cago/database/cache/memory"
 )
 
 func TestNewCacheSessionManager(t *testing.T) {

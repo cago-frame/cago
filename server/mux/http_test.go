@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/codfrm/cago/configs"
-	"github.com/codfrm/cago/configs/memory"
+	"github.com/cago-frame/cago/configs"
+	"github.com/cago-frame/cago/configs/memory"
 )
 
 type testRequest struct {

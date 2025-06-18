@@ -3,15 +3,15 @@ package cron
 import (
 	"context"
 
-	"github.com/codfrm/cago"
-	"github.com/codfrm/cago/configs"
-	"github.com/codfrm/cago/pkg/opentelemetry/trace"
+	"github.com/cago-frame/cago"
+	"github.com/cago-frame/cago/configs"
+	"github.com/cago-frame/cago/pkg/opentelemetry/trace"
 	"github.com/robfig/cron/v3"
 	trace2 "go.opentelemetry.io/otel/trace"
 )
 
 const (
-	tracerName = "github.com/codfrm/cago/server/cron"
+	tracerName = "github.com/cago-frame/cago/server/cron"
 )
 
 type server struct {

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/codfrm/cago/pkg/iam/sessions"
+	"github.com/cago-frame/cago/pkg/iam/sessions"
 )
 
 type expireSessionManager struct {

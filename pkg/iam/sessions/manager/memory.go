@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/codfrm/cago/pkg/iam/sessions"
-	"github.com/codfrm/cago/pkg/utils"
+	"github.com/cago-frame/cago/pkg/iam/sessions"
+	"github.com/cago-frame/cago/pkg/utils"
 )
 
 type memorySessionManager struct {

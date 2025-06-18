@@ -3,7 +3,7 @@ package event_bus
 import (
 	"time"
 
-	"github.com/codfrm/cago/pkg/broker/broker"
+	"github.com/cago-frame/cago/pkg/broker/broker"
 )
 
 type event struct {

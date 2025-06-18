@@ -1,7 +1,7 @@
 package gen
 
 import (
-	"github.com/codfrm/cago/internal/cmd/gen/utils"
+	"github.com/cago-frame/cago/internal/cmd/gen/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -26,10 +26,10 @@ const mongoRepositoryTpl = `package {{.tableName}}_repo
 import (
 	"context"
 
-	"github.com/codfrm/cago/database/mongo"
+	"github.com/cago-frame/cago/database/mongo"
 	"{{.pkgName}}/internal/model/entity/{{.tableName}}_entity"
-	"github.com/codfrm/cago/pkg/consts"
-	"github.com/codfrm/cago/pkg/utils/httputils"
+	"github.com/cago-frame/cago/pkg/consts"
+	"github.com/cago-frame/cago/pkg/utils/httputils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"

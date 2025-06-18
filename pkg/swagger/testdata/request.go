@@ -1,8 +1,8 @@
 package testdata
 
 import (
-	"github.com/codfrm/cago/pkg/utils/httputils"
-	"github.com/codfrm/cago/server/mux"
+	"github.com/cago-frame/cago/pkg/utils/httputils"
+	"github.com/cago-frame/cago/server/mux"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

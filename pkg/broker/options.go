@@ -1,7 +1,7 @@
 package broker
 
 import (
-	broker2 "github.com/codfrm/cago/pkg/broker/broker"
+	broker2 "github.com/cago-frame/cago/pkg/broker/broker"
 	"go.opentelemetry.io/otel/trace"
 )
 

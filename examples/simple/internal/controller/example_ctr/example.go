@@ -6,8 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	api "github.com/codfrm/cago/examples/simple/internal/api/example"
-	"github.com/codfrm/cago/examples/simple/internal/service/example_svc"
+	api "github.com/cago-frame/cago/examples/simple/internal/api/example"
+	"github.com/cago-frame/cago/examples/simple/internal/service/example_svc"
 )
 
 type Example struct {

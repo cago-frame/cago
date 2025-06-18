@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/codfrm/cago/pkg/errs"
-	"github.com/codfrm/cago/pkg/logger"
-	pkgValidator "github.com/codfrm/cago/pkg/utils/validator"
+	"github.com/cago-frame/cago/pkg/errs"
+	"github.com/cago-frame/cago/pkg/logger"
+	pkgValidator "github.com/cago-frame/cago/pkg/utils/validator"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"go.opentelemetry.io/otel/trace"

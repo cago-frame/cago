@@ -3,9 +3,9 @@ package user_entity
 import (
 	"context"
 
-	"github.com/codfrm/cago/examples/simple/internal/pkg/code"
-	"github.com/codfrm/cago/pkg/consts"
-	"github.com/codfrm/cago/pkg/i18n"
+	"github.com/cago-frame/cago/examples/simple/internal/pkg/code"
+	"github.com/cago-frame/cago/pkg/consts"
+	"github.com/cago-frame/cago/pkg/i18n"
 )
 
 type User struct {

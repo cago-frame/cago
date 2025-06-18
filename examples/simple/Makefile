@@ -1,7 +1,7 @@
 
 check-cago:
 ifneq ($(which cago),)
-	go install github.com/codfrm/cago/cmd/cago@latest
+	go install github.com/cago-frame/cago/cmd/cago@latest
 endif
 
 check-mockgen:
@@ -48,7 +48,7 @@ GOOS=linux
 GOARCH=amd64
 APP_NAME=simple
 APP_VERSION=1.0.0
-LD_FLAGS=-w -s -X github.com/codfrm/cago/configs.Version=${APP_VERSION}
+LD_FLAGS=-w -s -X github.com/cago-frame/cago/configs.Version=${APP_VERSION}
 
 SUFFIX=
 ifeq ($(GOOS),windows)

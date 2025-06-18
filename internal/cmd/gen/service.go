@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/codfrm/cago/internal/cmd/gen/utils"
+	"github.com/cago-frame/cago/internal/cmd/gen/utils"
 )
 
 const serviceInterfaceTpl = `package {PkgName}

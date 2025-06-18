@@ -3,7 +3,7 @@ package muxutils
 import (
 	"net/http"
 
-	"github.com/codfrm/cago/server/mux"
+	"github.com/cago-frame/cago/server/mux"
 	"github.com/gin-gonic/gin"
 )
 

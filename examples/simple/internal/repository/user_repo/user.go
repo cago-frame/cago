@@ -5,12 +5,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/codfrm/cago/pkg/iam/authn"
+	"github.com/cago-frame/cago/pkg/iam/authn"
 
-	"github.com/codfrm/cago/database/db"
-	"github.com/codfrm/cago/examples/simple/internal/model/entity/user_entity"
-	"github.com/codfrm/cago/pkg/consts"
-	"github.com/codfrm/cago/pkg/utils/httputils"
+	"github.com/cago-frame/cago/database/db"
+	"github.com/cago-frame/cago/examples/simple/internal/model/entity/user_entity"
+	"github.com/cago-frame/cago/pkg/consts"
+	"github.com/cago-frame/cago/pkg/utils/httputils"
 )
 
 //go:generate mockgen -source user.go -destination mock/user.go

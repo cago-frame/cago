@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/codfrm/cago/configs"
-	"github.com/codfrm/cago/database/db"
-	"github.com/codfrm/cago/internal/cmd/gen/utils"
+	"github.com/cago-frame/cago/configs"
+	"github.com/cago-frame/cago/database/db"
+	"github.com/cago-frame/cago/internal/cmd/gen/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -25,10 +25,10 @@ const repositoryTpl = `package {TableName}_repo
 import (
 	"context"
 
-	"github.com/codfrm/cago/database/db"
-	"github.com/codfrm/cago/pkg/consts"
+	"github.com/cago-frame/cago/database/db"
+	"github.com/cago-frame/cago/pkg/consts"
 	"{PkgName}/{TableName}_entity"
-	"github.com/codfrm/cago/pkg/utils/httputils"
+	"github.com/cago-frame/cago/pkg/utils/httputils"
 )
 
 type {Name}Repo interface {

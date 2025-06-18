@@ -1,8 +1,8 @@
 package authn
 
 import (
-	"github.com/codfrm/cago/pkg/iam/sessions"
-	"github.com/codfrm/cago/pkg/utils/httputils"
+	"github.com/cago-frame/cago/pkg/iam/sessions"
+	"github.com/cago-frame/cago/pkg/utils/httputils"
 	"github.com/gin-gonic/gin"
 )
 

@@ -1,7 +1,7 @@
 package sqlite
 
 import (
-	"github.com/codfrm/cago/database/db"
+	"github.com/cago-frame/cago/database/db"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )

@@ -7,13 +7,13 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/codfrm/cago/configs/file"
-	"github.com/codfrm/cago/configs/source"
+	"github.com/cago-frame/cago/configs/file"
+	"github.com/cago-frame/cago/configs/source"
 )
 
 type Env string
 
-// Version 编译时注入 -w -s -X github.com/codfrm/cago/configs.Version=1.0.0
+// Version 编译时注入 -w -s -X github.com/cago-frame/cago/configs.Version=1.0.0
 var Version = "1.0.0"
 
 const (

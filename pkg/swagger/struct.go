@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/codfrm/cago/internal/cmd/gen/utils"
+	"github.com/cago-frame/cago/internal/cmd/gen/utils"
 	"github.com/go-openapi/jsonreference"
 	"github.com/go-openapi/spec"
 )

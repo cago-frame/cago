@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/codfrm/cago/configs"
-	"github.com/codfrm/cago/configs/memory"
+	"github.com/cago-frame/cago/configs"
+	"github.com/cago-frame/cago/configs/memory"
 	"github.com/stretchr/testify/assert"
 	mysqlDriver "gorm.io/driver/mysql"
 	"gorm.io/gorm"

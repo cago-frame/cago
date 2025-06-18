@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/codfrm/cago/middleware/permission"
+	"github.com/cago-frame/cago/middleware/permission"
 )
 
 var _ permission.PolicyStorage = (*Memory)(nil)

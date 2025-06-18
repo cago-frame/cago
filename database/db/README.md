@@ -56,6 +56,6 @@ func SomeMethod(ctx context.Context) error {
 
 ```go
 import (
-_ "github.com/codfrm/cago/database/db/clickhouse"
+_ "github.com/cago-frame/cago/database/db/clickhouse"
 )
 ```

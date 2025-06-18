@@ -1,6 +1,6 @@
 package testdata
 
-import "github.com/codfrm/cago/server/mux"
+import "github.com/cago-frame/cago/server/mux"
 
 // Router 路由
 // @title    api文档

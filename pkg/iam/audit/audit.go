@@ -3,7 +3,7 @@ package audit
 import (
 	"context"
 
-	"github.com/codfrm/cago/pkg/iam/audit/audit_logger"
+	"github.com/cago-frame/cago/pkg/iam/audit/audit_logger"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )

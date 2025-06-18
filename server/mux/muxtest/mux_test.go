@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/codfrm/cago/server/mux"
+	"github.com/cago-frame/cago/server/mux"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )

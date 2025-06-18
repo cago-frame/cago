@@ -1,4 +1,4 @@
-module github.com/codfrm/cago
+module github.com/cago-frame/cago
 
 go 1.22
 

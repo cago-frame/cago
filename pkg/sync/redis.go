@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	redis2 "github.com/codfrm/cago/database/redis"
+	redis2 "github.com/cago-frame/cago/database/redis"
 	"github.com/redis/go-redis/v9"
 )
 

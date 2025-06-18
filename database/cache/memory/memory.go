@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/codfrm/cago/database/cache/cache"
+	"github.com/cago-frame/cago/database/cache/cache"
 	gocache "github.com/patrickmn/go-cache"
 )
 

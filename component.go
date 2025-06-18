@@ -3,7 +3,7 @@ package cago
 import (
 	"context"
 
-	"github.com/codfrm/cago/configs"
+	"github.com/cago-frame/cago/configs"
 )
 
 // Component 组件接口

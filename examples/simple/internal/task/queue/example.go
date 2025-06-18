@@ -3,10 +3,10 @@ package queue
 import (
 	"context"
 
-	"github.com/codfrm/cago/examples/simple/internal/task/queue/message"
+	"github.com/cago-frame/cago/examples/simple/internal/task/queue/message"
 
-	"github.com/codfrm/cago/pkg/broker"
-	broker2 "github.com/codfrm/cago/pkg/broker/broker"
+	"github.com/cago-frame/cago/pkg/broker"
+	broker2 "github.com/cago-frame/cago/pkg/broker/broker"
 )
 
 const (

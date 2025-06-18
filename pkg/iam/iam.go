@@ -3,10 +3,10 @@ package iam
 import (
 	"context"
 
-	"github.com/codfrm/cago"
-	"github.com/codfrm/cago/configs"
-	"github.com/codfrm/cago/pkg/iam/audit"
-	"github.com/codfrm/cago/pkg/iam/authn"
+	"github.com/cago-frame/cago"
+	"github.com/cago-frame/cago/configs"
+	"github.com/cago-frame/cago/pkg/iam/audit"
+	"github.com/cago-frame/cago/pkg/iam/authn"
 )
 
 type Iam struct {

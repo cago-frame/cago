@@ -3,7 +3,7 @@ package wrap
 import (
 	stdContext "context"
 
-	"github.com/codfrm/cago/pkg/logger"
+	"github.com/cago-frame/cago/pkg/logger"
 	"go.opentelemetry.io/otel/trace"
 )
 

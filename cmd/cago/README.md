@@ -5,7 +5,7 @@ Cago有一个简单的脚手架，你可以使用脚手架快速开发你的项�
 ## 安装
 
 ```bash
-go install github.com/codfrm/cago/cmd/cago@latest
+go install github.com/cago-frame/cago/cmd/cago@latest
 ```
 
 ## 使用

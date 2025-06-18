@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/codfrm/cago/database/cache/cache"
-	"github.com/codfrm/cago/pkg/iam/sessions"
-	"github.com/codfrm/cago/pkg/utils"
+	"github.com/cago-frame/cago/database/cache/cache"
+	"github.com/cago-frame/cago/pkg/iam/sessions"
+	"github.com/cago-frame/cago/pkg/utils"
 )
 
 type cacheSessionManager struct {

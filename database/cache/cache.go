@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 
-	"github.com/codfrm/cago"
-	"github.com/codfrm/cago/configs"
-	cache2 "github.com/codfrm/cago/database/cache/cache"
-	"github.com/codfrm/cago/database/cache/memory"
-	"github.com/codfrm/cago/database/cache/redis"
+	"github.com/cago-frame/cago"
+	"github.com/cago-frame/cago/configs"
+	cache2 "github.com/cago-frame/cago/database/cache/cache"
+	"github.com/cago-frame/cago/database/cache/memory"
+	"github.com/cago-frame/cago/database/cache/redis"
 	redis2 "github.com/redis/go-redis/v9"
 )
 

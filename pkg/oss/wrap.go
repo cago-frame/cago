@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/codfrm/cago/pkg/oss/oss"
-	"github.com/codfrm/cago/pkg/utils/wrap"
+	"github.com/cago-frame/cago/pkg/oss/oss"
+	"github.com/cago-frame/cago/pkg/utils/wrap"
 )
 
 type wrapClient struct {

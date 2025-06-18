@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	validator2 "github.com/codfrm/cago/pkg/utils/validator"
+	validator2 "github.com/cago-frame/cago/pkg/utils/validator"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )

@@ -5,18 +5,18 @@ import (
 	"errors"
 	"time"
 
-	"github.com/codfrm/cago/pkg/logger"
-	trace2 "github.com/codfrm/cago/pkg/opentelemetry/trace"
-	wrap2 "github.com/codfrm/cago/pkg/utils/wrap"
+	"github.com/cago-frame/cago/pkg/logger"
+	trace2 "github.com/cago-frame/cago/pkg/opentelemetry/trace"
+	wrap2 "github.com/cago-frame/cago/pkg/utils/wrap"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 
-	broker2 "github.com/codfrm/cago/pkg/broker/broker"
-	"github.com/codfrm/cago/pkg/broker/event_bus"
-	"github.com/codfrm/cago/pkg/broker/nsq"
+	broker2 "github.com/cago-frame/cago/pkg/broker/broker"
+	"github.com/cago-frame/cago/pkg/broker/event_bus"
+	"github.com/cago-frame/cago/pkg/broker/nsq"
 )
 
 type Type string

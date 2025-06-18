@@ -3,10 +3,10 @@ package migrations
 import (
 	"context"
 
-	"github.com/codfrm/cago/database/db"
-	"github.com/codfrm/cago/examples/simple/internal/api/user"
-	"github.com/codfrm/cago/examples/simple/internal/model/entity/user_entity"
-	"github.com/codfrm/cago/examples/simple/internal/service/user_svc"
+	"github.com/cago-frame/cago/database/db"
+	"github.com/cago-frame/cago/examples/simple/internal/api/user"
+	"github.com/cago-frame/cago/examples/simple/internal/model/entity/user_entity"
+	"github.com/cago-frame/cago/examples/simple/internal/service/user_svc"
 	"github.com/go-gormigrate/gormigrate/v2"
 	"gorm.io/gorm"
 )

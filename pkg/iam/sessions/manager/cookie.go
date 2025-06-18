@@ -1,7 +1,7 @@
 package manager
 
 import (
-	"github.com/codfrm/cago/pkg/iam/sessions"
+	"github.com/cago-frame/cago/pkg/iam/sessions"
 	"github.com/gin-gonic/gin"
 )
 

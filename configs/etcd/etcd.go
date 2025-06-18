@@ -6,10 +6,10 @@ import (
 	"path"
 	"time"
 
-	"github.com/codfrm/cago/configs"
+	"github.com/cago-frame/cago/configs"
 
-	"github.com/codfrm/cago/configs/file"
-	"github.com/codfrm/cago/configs/source"
+	"github.com/cago-frame/cago/configs/file"
+	"github.com/cago-frame/cago/configs/source"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 

@@ -1,6 +1,6 @@
 package code
 
-import "github.com/codfrm/cago/pkg/i18n"
+import "github.com/cago-frame/cago/pkg/i18n"
 
 func init() {
 	i18n.Register(i18n.DefaultLang, zhCN)

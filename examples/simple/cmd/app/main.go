@@ -4,21 +4,21 @@ import (
 	"context"
 	"log"
 
-	"github.com/codfrm/cago/examples/simple/internal/repository/user_repo"
-	"github.com/codfrm/cago/examples/simple/internal/task"
-	"github.com/codfrm/cago/examples/simple/migrations"
-	"github.com/codfrm/cago/pkg/iam"
-	"github.com/codfrm/cago/pkg/iam/audit"
-	"github.com/codfrm/cago/pkg/iam/audit/audit_db"
-	"github.com/codfrm/cago/server/cron"
+	"github.com/cago-frame/cago/examples/simple/internal/repository/user_repo"
+	"github.com/cago-frame/cago/examples/simple/internal/task"
+	"github.com/cago-frame/cago/examples/simple/migrations"
+	"github.com/cago-frame/cago/pkg/iam"
+	"github.com/cago-frame/cago/pkg/iam/audit"
+	"github.com/cago-frame/cago/pkg/iam/audit/audit_db"
+	"github.com/cago-frame/cago/server/cron"
 
-	"github.com/codfrm/cago/database/db"
-	"github.com/codfrm/cago/pkg/component"
+	"github.com/cago-frame/cago/database/db"
+	"github.com/cago-frame/cago/pkg/component"
 
-	"github.com/codfrm/cago"
-	"github.com/codfrm/cago/configs"
-	"github.com/codfrm/cago/examples/simple/internal/api"
-	"github.com/codfrm/cago/server/mux"
+	"github.com/cago-frame/cago"
+	"github.com/cago-frame/cago/configs"
+	"github.com/cago-frame/cago/examples/simple/internal/api"
+	"github.com/cago-frame/cago/server/mux"
 )
 
 func main() {

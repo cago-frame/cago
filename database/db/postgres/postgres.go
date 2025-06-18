@@ -1,7 +1,7 @@
 package postgres
 
 import (
-	"github.com/codfrm/cago/database/db"
+	"github.com/cago-frame/cago/database/db"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )

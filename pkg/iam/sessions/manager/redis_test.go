@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/codfrm/cago/pkg/iam/sessions"
+	"github.com/cago-frame/cago/pkg/iam/sessions"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 

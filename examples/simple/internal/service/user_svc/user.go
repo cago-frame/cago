@@ -4,19 +4,19 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/codfrm/cago/examples/simple/internal/model"
-	"github.com/codfrm/cago/pkg/iam/audit"
-	"github.com/codfrm/cago/pkg/logger"
+	"github.com/cago-frame/cago/examples/simple/internal/model"
+	"github.com/cago-frame/cago/pkg/iam/audit"
+	"github.com/cago-frame/cago/pkg/logger"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 
-	api "github.com/codfrm/cago/examples/simple/internal/api/user"
-	"github.com/codfrm/cago/examples/simple/internal/pkg/code"
-	"github.com/codfrm/cago/examples/simple/internal/repository/user_repo"
-	"github.com/codfrm/cago/pkg/i18n"
-	"github.com/codfrm/cago/pkg/iam/authn"
-	"github.com/codfrm/cago/pkg/iam/sessions"
+	api "github.com/cago-frame/cago/examples/simple/internal/api/user"
+	"github.com/cago-frame/cago/examples/simple/internal/pkg/code"
+	"github.com/cago-frame/cago/examples/simple/internal/repository/user_repo"
+	"github.com/cago-frame/cago/pkg/i18n"
+	"github.com/cago-frame/cago/pkg/iam/authn"
+	"github.com/cago-frame/cago/pkg/iam/sessions"
 	"github.com/gin-gonic/gin"
 )
 

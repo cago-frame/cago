@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/codfrm/cago/pkg/logger"
+	"github.com/cago-frame/cago/pkg/logger"
 	"go.uber.org/zap"
 
-	"github.com/codfrm/cago/pkg/utils"
-	"github.com/codfrm/cago/pkg/utils/httputils"
+	"github.com/cago-frame/cago/pkg/utils"
+	"github.com/cago-frame/cago/pkg/utils/httputils"
 	"github.com/redis/go-redis/v9"
 )
 

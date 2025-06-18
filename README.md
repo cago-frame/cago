@@ -1,7 +1,7 @@
 # Cago
 
-[![godoc](https://godoc.org/github.com/codfrm/cago?status.svg)](https://pkg.go.dev/github.com/codfrm/cago)
-[![Go Report Card](https://goreportcard.com/badge/github.com/codfrm/cago)](https://goreportcard.com/report/github.com/codfrm/cago)
+[![godoc](https://godoc.org/github.com/cago-frame/cago?status.svg)](https://pkg.go.dev/github.com/cago-frame/cago)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cago-frame/cago)](https://goreportcard.com/report/github.com/cago-frame/cago)
 [![License](https://img.shields.io/github/license/go-eagle/eagle?style=flat-square)](/LICENSE)
 
 Cago 一个快速开发的集成式框架.使用模块化的开发模式,每一个组件都可以单独的调用.

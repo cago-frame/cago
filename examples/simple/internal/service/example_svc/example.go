@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/codfrm/cago/examples/simple/internal/task/queue"
-	"github.com/codfrm/cago/examples/simple/internal/task/queue/message"
+	"github.com/cago-frame/cago/examples/simple/internal/task/queue"
+	"github.com/cago-frame/cago/examples/simple/internal/task/queue/message"
 
-	api "github.com/codfrm/cago/examples/simple/internal/api/example"
-	"github.com/codfrm/cago/pkg/iam/audit"
-	"github.com/codfrm/cago/pkg/logger"
-	"github.com/codfrm/cago/pkg/utils"
+	api "github.com/cago-frame/cago/examples/simple/internal/api/example"
+	"github.com/cago-frame/cago/pkg/iam/audit"
+	"github.com/cago-frame/cago/pkg/logger"
+	"github.com/cago-frame/cago/pkg/utils"
 	"go.uber.org/zap"
 )
 

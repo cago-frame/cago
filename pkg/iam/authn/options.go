@@ -3,13 +3,13 @@ package authn
 import (
 	"net/http"
 
-	cache2 "github.com/codfrm/cago/database/cache"
-	"github.com/codfrm/cago/database/cache/cache"
-	"github.com/codfrm/cago/pkg/iam/sessions/manager"
+	cache2 "github.com/cago-frame/cago/database/cache"
+	"github.com/cago-frame/cago/database/cache/cache"
+	"github.com/cago-frame/cago/pkg/iam/sessions/manager"
 	"github.com/gin-gonic/gin"
 
-	"github.com/codfrm/cago/pkg/iam/sessions"
-	"github.com/codfrm/cago/pkg/utils/httputils"
+	"github.com/cago-frame/cago/pkg/iam/sessions"
+	"github.com/cago-frame/cago/pkg/utils/httputils"
 )
 
 var (

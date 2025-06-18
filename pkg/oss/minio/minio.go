@@ -3,7 +3,7 @@ package minio
 import (
 	"context"
 
-	"github.com/codfrm/cago/pkg/oss/oss"
+	"github.com/cago-frame/cago/pkg/oss/oss"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )

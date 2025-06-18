@@ -13,9 +13,9 @@ import (
 	context "context"
 	reflect "reflect"
 
-	user_entity "github.com/codfrm/cago/examples/simple/internal/model/entity/user_entity"
-	authn "github.com/codfrm/cago/pkg/iam/authn"
-	httputils "github.com/codfrm/cago/pkg/utils/httputils"
+	user_entity "github.com/cago-frame/cago/examples/simple/internal/model/entity/user_entity"
+	authn "github.com/cago-frame/cago/pkg/iam/authn"
+	httputils "github.com/cago-frame/cago/pkg/utils/httputils"
 	gomock "go.uber.org/mock/gomock"
 )
 

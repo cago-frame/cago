@@ -1,7 +1,7 @@
 package cache
 
 import (
-	cache2 "github.com/codfrm/cago/database/cache/cache"
+	cache2 "github.com/cago-frame/cago/database/cache/cache"
 )
 
 var (

@@ -1,7 +1,7 @@
 package clickhouse
 
 import (
-	"github.com/codfrm/cago/database/db"
+	"github.com/cago-frame/cago/database/db"
 	"gorm.io/driver/clickhouse"
 	"gorm.io/gorm"
 )

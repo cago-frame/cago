@@ -3,7 +3,7 @@ package cache
 import (
 	"context"
 
-	cache2 "github.com/codfrm/cago/database/cache/cache"
+	cache2 "github.com/cago-frame/cago/database/cache/cache"
 )
 
 type CtxCache struct {

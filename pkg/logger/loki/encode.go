@@ -3,7 +3,7 @@ package loki
 import (
 	"encoding/json"
 
-	"github.com/codfrm/cago/pkg/utils"
+	"github.com/cago-frame/cago/pkg/utils"
 	"go.uber.org/zap"
 	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/zapcore"

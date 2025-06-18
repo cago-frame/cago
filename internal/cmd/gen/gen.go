@@ -5,8 +5,8 @@ import (
 	"go/parser"
 	"go/token"
 
-	"github.com/codfrm/cago/internal/cmd/gen/utils"
-	"github.com/codfrm/cago/pkg/swagger"
+	"github.com/cago-frame/cago/internal/cmd/gen/utils"
+	"github.com/cago-frame/cago/pkg/swagger"
 	"github.com/spf13/cobra"
 )
 

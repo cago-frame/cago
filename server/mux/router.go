@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/codfrm/cago/pkg/utils/httputils"
+	"github.com/cago-frame/cago/pkg/utils/httputils"
 	"github.com/gin-gonic/gin"
 )
 

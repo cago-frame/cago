@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/codfrm/cago/pkg/utils/validator"
-	"github.com/codfrm/cago/server/mux"
-	"github.com/codfrm/cago/server/mux/muxclient"
+	"github.com/cago-frame/cago/pkg/utils/validator"
+	"github.com/cago-frame/cago/server/mux"
+	"github.com/cago-frame/cago/server/mux/muxclient"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 )

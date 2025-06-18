@@ -3,8 +3,8 @@ package mux
 import (
 	"errors"
 
-	"github.com/codfrm/cago/configs"
-	"github.com/codfrm/cago/pkg/utils/httputils"
+	"github.com/cago-frame/cago/configs"
+	"github.com/cago-frame/cago/pkg/utils/httputils"
 	"github.com/gin-gonic/gin"
 )
 

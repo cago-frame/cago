@@ -2,8 +2,8 @@ package cache
 
 import (
 	"context"
-	cache2 "github.com/codfrm/cago/database/cache/cache"
-	"github.com/codfrm/cago/database/cache/memory"
+	cache2 "github.com/cago-frame/cago/database/cache/cache"
+	"github.com/cago-frame/cago/database/cache/memory"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

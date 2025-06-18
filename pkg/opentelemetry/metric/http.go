@@ -4,13 +4,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/codfrm/cago"
+	"github.com/cago-frame/cago"
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
 
-const instrumName = "github.com/codfrm/cago/pkg/opentelemetry/metric.http"
+const instrumName = "github.com/cago-frame/cago/pkg/opentelemetry/metric.http"
 
 func Middleware(m metric.MeterProvider) (gin.HandlerFunc, error) {
 	attr := []metric.MeterOption{

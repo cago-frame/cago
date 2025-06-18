@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/codfrm/cago/database/cache/cache"
-	"github.com/codfrm/cago/pkg/opentelemetry/metric"
-	"github.com/codfrm/cago/pkg/opentelemetry/trace"
+	"github.com/cago-frame/cago/database/cache/cache"
+	"github.com/cago-frame/cago/pkg/opentelemetry/metric"
+	"github.com/cago-frame/cago/pkg/opentelemetry/trace"
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 )

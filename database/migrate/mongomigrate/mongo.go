@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/codfrm/cago/configs"
+	"github.com/cago-frame/cago/configs"
 
-	"github.com/codfrm/cago/database/mongo"
+	"github.com/cago-frame/cago/database/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	mongo2 "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"

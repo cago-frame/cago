@@ -3,7 +3,7 @@ package cron
 import (
 	"context"
 
-	"github.com/codfrm/cago/pkg/logger"
+	"github.com/cago-frame/cago/pkg/logger"
 	"github.com/robfig/cron/v3"
 	"go.opentelemetry.io/otel/attribute"
 	trace2 "go.opentelemetry.io/otel/trace"

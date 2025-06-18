@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/codfrm/cago/configs"
+	"github.com/cago-frame/cago/configs"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

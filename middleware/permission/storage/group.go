@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/codfrm/cago/middleware/permission"
+	"github.com/cago-frame/cago/middleware/permission"
 )
 
 type Group struct {
