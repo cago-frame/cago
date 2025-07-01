@@ -28,6 +28,11 @@ func Go(fun func(ctx context.Context) error, opts ...Option) error {
 			// 错误处理
 			if err := recover(); err != nil {
 				logger.Default().Error("goroutine panic", zap.Any("err", err), zap.Stack("stack"))
+				// 继续抛出错误
+				if options.ignorePanic {
+					return
+				}
+				panic(err)
 			}
 		}()
 		_ = fun(options.ctx)
