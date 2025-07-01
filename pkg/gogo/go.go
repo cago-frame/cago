@@ -13,14 +13,11 @@ var wg sync.WaitGroup
 // Go 框架处理协程
 // 可以处理协程的panic，但是不会返回错误
 // 也可以处理安全退出，当还有协程在运行时，gogo.Wait()会一直阻塞
-func Go(fun func(ctx context.Context) error, opts ...Option) error {
+func Go(ctx context.Context, fun func(ctx context.Context) error, opts ...Option) error {
 	wg.Add(1)
 	options := &Options{}
 	for _, o := range opts {
 		o(options)
-	}
-	if options.ctx == nil {
-		options.ctx = context.Background()
 	}
 	go func() {
 		defer func() {
@@ -35,7 +32,7 @@ func Go(fun func(ctx context.Context) error, opts ...Option) error {
 				panic(err)
 			}
 		}()
-		_ = fun(options.ctx)
+		_ = fun(ctx)
 	}()
 	return nil
 }
