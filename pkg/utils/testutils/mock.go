@@ -8,10 +8,9 @@ import (
 	"github.com/cago-frame/cago/pkg/component"
 	"github.com/cago-frame/cago/pkg/logger"
 	"github.com/cago-frame/cago/pkg/opentelemetry/trace"
-	"testing"
 )
 
-func RunTest(m *testing.M) int {
+func RunTestEnv() {
 	cfg, err := configs.NewConfig("arb-bot", configs.WithSource(
 		memory.NewSource(map[string]interface{}{
 			"logger": logger.Config{
@@ -29,6 +28,4 @@ func RunTest(m *testing.M) int {
 	}
 	cago.New(context.Background(), cfg).
 		Registry(component.Core())
-
-	return m.Run()
 }

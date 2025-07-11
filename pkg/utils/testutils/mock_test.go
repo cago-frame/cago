@@ -8,7 +8,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	RunTest(m)
+	RunTestEnv()
 }
 
 func TestComponent(t *testing.T) {
