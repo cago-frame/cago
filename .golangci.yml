@@ -33,6 +33,5 @@ formatters:
     - gofmt
     - goimports
 
-
 run:
   timeout: 10m

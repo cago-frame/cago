@@ -2,6 +2,7 @@ package trace
 
 import (
 	"context"
+	"go.opentelemetry.io/otel/trace/noop"
 	"time"
 
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -55,6 +56,8 @@ func NewWithConfig(ctx context.Context, cfg *Config, opts ...Option) (trace.Trac
 			clientOpts = append(clientOpts, otlptracehttp.WithInsecure())
 		}
 		client = otlptracehttp.NewClient(clientOpts...)
+	case "noop":
+		return noop.NewTracerProvider(), nil
 	default:
 		clientOpts := []otlptracegrpc.Option{
 			otlptracegrpc.WithEndpoint(cfg.Endpoint),
