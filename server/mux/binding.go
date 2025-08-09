@@ -3,6 +3,8 @@ package mux
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -61,7 +63,9 @@ func (b *bind) bind(req *http.Request, ptr any) error {
 			}
 			decoder := json.NewDecoder(req.Body)
 			if err := decoder.Decode(ptr); err != nil {
-				return httputils.NewInternalServerError(-1, err.Error())
+				if !errors.Is(err, io.EOF) {
+					return httputils.NewInternalServerError(-1, err.Error())
+				}
 			}
 		case binding.MIMEMultipartPOSTForm, binding.MIMEPOSTForm:
 			form = b.ctx.PostFormArray

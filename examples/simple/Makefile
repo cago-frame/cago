@@ -26,7 +26,7 @@ lint: check-golangci-lint
 lint-fix: check-golangci-lint
 	golangci-lint run --fix
 
-test: lint-fix
+test:
 	go test -v ./...
 
 coverage.out cover:
