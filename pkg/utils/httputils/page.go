@@ -12,12 +12,25 @@ type PageRequest struct {
 	Order string `form:"order" json:"order"`
 }
 
-func (p *PageRequest) GetSort() string {
-	return p.Sort
+func (p *PageRequest) GetSort(allowSort ...string) string {
+	if p.Sort == "" {
+		return "createtime"
+	}
+	if len(allowSort) > 0 {
+		for _, sort := range allowSort {
+			if p.Sort == sort {
+				return p.Sort
+			}
+		}
+	}
+	return "createtime"
 }
 
 func (p *PageRequest) GetOrder() string {
-	return p.Order
+	if p.Order == "asc" {
+		return "asc"
+	}
+	return "desc"
 }
 
 func (p *PageRequest) GetPage() int {
