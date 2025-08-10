@@ -9,7 +9,6 @@ on:
 
 env:
   GOPROXY: ${{ secrets.GOPROXY && secrets.GOPROXY || 'https://goproxy.cn,direct' }}
-  RUNNER_TOOL_CACHE: /toolcache
 
 jobs:
   test:
