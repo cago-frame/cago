@@ -36,6 +36,8 @@ type Config struct {
 	Driver Driver `yaml:"driver"`
 	Dsn    string `yaml:"dsn"`
 	Prefix string `yaml:"prefix"`
+	// 开启 gorm 的 debug 模式
+	Debug bool `yaml:"debug"`
 	// 读写分离，以后再说吧
 	//WriterDsn []string `yaml:"writerDsn,omitempty"` // 写入数据源
 	//ReaderDsn []string `yaml:"readerDsn,omitempty"` // 读取数据源
@@ -98,6 +100,9 @@ func (d *DB) newDB(cfg *Config, debug bool) (*gorm.DB, error) {
 		)); err != nil {
 			return nil, err
 		}
+	}
+	if cfg.Debug {
+		orm = orm.Debug()
 	}
 	return orm, nil
 }
