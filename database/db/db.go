@@ -41,6 +41,8 @@ type Config struct {
 	// 读写分离，以后再说吧
 	//WriterDsn []string `yaml:"writerDsn,omitempty"` // 写入数据源
 	//ReaderDsn []string `yaml:"readerDsn,omitempty"` // 读取数据源
+	// gorm配置
+	PrepareStmt bool `yaml:"prepareStmt,omitempty"` // 是否开启预编译
 }
 
 type GroupConfig map[string]*Config
@@ -72,14 +74,16 @@ func (d *DB) newDB(cfg *Config, debug bool) (*gorm.DB, error) {
 		logCfg.IgnoreRecordNotFoundError = false
 		logCfg.Colorful = true
 	}
-	orm, err := gorm.Open(driver[cfg.Driver](cfg), &gorm.Config{
+	gormConfig := &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix:   cfg.Prefix,
 			SingularTable: true,
 		},
-		Logger: NewLogger(cfg.Driver, logCfg),
-	})
+		Logger:      NewLogger(cfg.Driver, logCfg),
+		PrepareStmt: cfg.PrepareStmt,
+	}
+	orm, err := gorm.Open(driver[cfg.Driver](cfg), gormConfig)
 	if err != nil {
 		return nil, err
 	}
