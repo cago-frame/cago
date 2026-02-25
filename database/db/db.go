@@ -83,6 +83,9 @@ func (d *DB) newDB(cfg *Config, debug bool) (*gorm.DB, error) {
 		Logger:      NewLogger(cfg.Driver, logCfg),
 		PrepareStmt: cfg.PrepareStmt,
 	}
+	if driver[cfg.Driver] == nil {
+		return nil, errors.New("unsupported driver: " + string(cfg.Driver) + ", please register it first or import the corresponding database driver: db/" + string(cfg.Driver))
+	}
 	orm, err := gorm.Open(driver[cfg.Driver](cfg), gormConfig)
 	if err != nil {
 		return nil, err

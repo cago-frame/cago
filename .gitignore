@@ -23,3 +23,6 @@
 /docs
 /runtime
 /bin
+
+.claude
+CLAUDE.md

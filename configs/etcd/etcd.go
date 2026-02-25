@@ -65,7 +65,7 @@ func (e *etcd) Scan(ctx context.Context, key string, value interface{}) error {
 	defer cancel()
 	resp, err := e.Client.Get(ctx, path.Join(e.prefix, key))
 	if err != nil {
-		return err
+		return fmt.Errorf("etcd %s: %w", key, err)
 	}
 	if len(resp.Kvs) == 0 {
 		b, err := e.serialization.Marshal(value)
@@ -75,9 +75,13 @@ func (e *etcd) Scan(ctx context.Context, key string, value interface{}) error {
 		if _, err := e.Client.Put(ctx, path.Join(e.prefix, key), string(b)); err != nil {
 			return err
 		}
-		return fmt.Errorf("etcd %w: %s", source.ErrNotFound, key)
+		return fmt.Errorf("etcd %w: %s, initialized with default value", source.ErrNotFound, key)
 	}
-	return e.serialization.Unmarshal(resp.Kvs[0].Value, value)
+	err = e.serialization.Unmarshal(resp.Kvs[0].Value, value)
+	if err != nil {
+		return fmt.Errorf("etcd unmarshal %s: %w", key, err)
+	}
+	return nil
 }
 
 func (e *etcd) Has(ctx context.Context, key string) (bool, error) {
@@ -85,7 +89,7 @@ func (e *etcd) Has(ctx context.Context, key string) (bool, error) {
 	defer cancel()
 	resp, err := e.Client.Get(ctx, path.Join(e.prefix, key))
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("etcd %s: %w", key, err)
 	}
 	return len(resp.Kvs) > 0, nil
 }

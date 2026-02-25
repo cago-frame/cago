@@ -46,7 +46,7 @@ func New(ctx context.Context, cfg *configs.Config) *Cago {
 func (r *Cago) Registry(component Component) *Cago {
 	err := component.Start(r.ctx, r.cfg)
 	if err != nil {
-		panic(err)
+		panic(errors.New("start component error: " + reflect.TypeOf(component).String() + " " + err.Error()))
 	}
 	r.components = append(r.components, component)
 	return r

@@ -60,7 +60,7 @@ func StartSpan(ctx context.Context, name string, opts ...trace.SpanStartOption) 
 func Middleware(serviceName string, tracerProvider trace.TracerProvider) gin.HandlerFunc {
 	tracer := tracerProvider.Tracer(
 		tracerName,
-		trace.WithInstrumentationVersion("0.1.0"),
+		trace.WithInstrumentationVersion("1.0.0"),
 	)
 	propagators := otel.GetTextMapPropagator()
 	return func(c *gin.Context) {
