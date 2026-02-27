@@ -2,10 +2,11 @@ package pprof
 
 import (
 	"context"
+	"net/http"
+	_ "net/http/pprof" //nolint:gosec // G108
+
 	"github.com/cago-frame/cago"
 	"github.com/cago-frame/cago/configs"
-	"net/http"
-	_ "net/http/pprof"
 )
 
 type Options struct {
@@ -29,7 +30,7 @@ func Pprof(opts ...Option) cago.FuncComponent {
 	}
 	return func(ctx context.Context, cfg *configs.Config) error {
 		go func() {
-			err := http.ListenAndServe(options.Address, nil)
+			err := http.ListenAndServe(options.Address, nil) //nolint:gosec // G114
 			if err != nil {
 				panic(err)
 			}

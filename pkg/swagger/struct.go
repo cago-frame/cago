@@ -275,11 +275,11 @@ func (p *parseStruct) parseExpr(expr ast.Expr) (spec.Schema, error) {
 		for k, v := range schema1.Properties {
 			// 数组类型进去找
 			if v.Type.Contains("array") {
-				if v.Items.Schema.SchemaProps.Type.Contains("any") ||
-					v.Items.Schema.SchemaProps.Type.Contains("object") {
+				if v.Items.Schema.Type.Contains("any") ||
+					v.Items.Schema.Type.Contains("object") {
 					// copy泛型类型
-					schema1.Properties[k].Items.Schema.SchemaProps.Type = []string{"object"}
-					schema1.Properties[k].Items.Schema.SchemaProps.Ref = schema2.Ref
+					schema1.Properties[k].Items.Schema.Type = []string{"object"}
+					schema1.Properties[k].Items.Schema.Ref = schema2.Ref
 					p.InnerDefinitions[key] = schema1
 					return spec.Schema{
 						SchemaProps: spec.SchemaProps{

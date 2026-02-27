@@ -87,7 +87,7 @@ func copyMap(src map[string]interface{}) map[string]interface{} {
 // 删除access_token时同时删除refresh_token
 // access_token与refresh_token的映射关系需要使用其它方式维护，需要设置AccessTokenMapping，如果不设置则不会删除refresh_token
 func (h *refreshHTTPSessionManager) Delete(ctx context.Context, id string) error {
-	_, err := h.SessionManager.Get(ctx, id)
+	_, err := h.Get(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -111,7 +111,7 @@ func (h *refreshHTTPSessionManager) GetFromRequest(ctx *gin.Context) (*sessions.
 	if err != nil {
 		return nil, sessions.ErrSessionNotFound
 	}
-	session, err := h.SessionManager.Get(ctx, id)
+	session, err := h.Get(ctx, id)
 	if err != nil {
 		// 如果access_token不存在，判断是否有refresh_token 并校验是否有效
 		refreshID := ctx.PostForm("refresh_token")
@@ -124,7 +124,7 @@ func (h *refreshHTTPSessionManager) GetFromRequest(ctx *gin.Context) (*sessions.
 			if refreshSession.Values["access_token"].(string) != id {
 				return nil, sessions.ErrSessionNotFound
 			}
-			session, err = h.SessionManager.Start(ctx)
+			session, err = h.Start(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -139,8 +139,8 @@ func (h *refreshHTTPSessionManager) GetFromRequest(ctx *gin.Context) (*sessions.
 }
 
 type RefreshSessionResponse struct {
-	AccessToken   string `json:"access_token"`
-	RefreshToken  string `json:"refresh_token"`
+	AccessToken   string `json:"access_token"`  //nolint:gosec // G117
+	RefreshToken  string `json:"refresh_token"` //nolint:gosec // G117
 	Expire        int64  `json:"expire"`
 	RefreshExpire int64  `json:"refresh_expire"`
 }
@@ -152,7 +152,7 @@ func (h *refreshHTTPSessionManager) SaveToResponse(ctx *gin.Context, session *se
 		if err != nil {
 			return err
 		}
-		if err := h.SessionManager.Save(ctx, session); err != nil {
+		if err := h.Save(ctx, session); err != nil {
 			return err
 		}
 		refreshSession.Values = copyMap(session.Values)
@@ -182,7 +182,7 @@ func (h *refreshHTTPSessionManager) SaveToResponse(ctx *gin.Context, session *se
 		}
 		oldSessionId := session.ID
 		// 刷新access token
-		if err := h.SessionManager.Refresh(ctx, session); err != nil {
+		if err := h.Refresh(ctx, session); err != nil {
 			return err
 		}
 		// 刷新refresh token

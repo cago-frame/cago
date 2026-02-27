@@ -85,7 +85,7 @@ func (r *Routes) requestHandle(requestEl reflect.Type, handlers ...gin.HandlerFu
 			if method == "" {
 				method = http.MethodGet
 			}
-			r.IRoutes.Handle(method, path, handlers...)
+			r.Handle(method, path, handlers...)
 		}
 	}
 	return r

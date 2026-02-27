@@ -25,7 +25,7 @@ type RegisterRequest struct {
 	// 用户名
 	Username string `json:"username"`
 	// 密码
-	Password string `json:"password"`
+	Password string `json:"password"` //nolint:gosec // G117
 
 	// 昵称
 	Nickname string `json:"nickname,omitempty"`
@@ -54,7 +54,7 @@ type UpdateUserRequest struct {
 	// 用户名
 	Username string `json:"username,omitempty"`
 	// 密码
-	Password string `json:"password,omitempty"`
+	Password string `json:"password,omitempty"` //nolint:gosec // G117
 
 	// 昵称
 	Nickname string `json:"nickname,omitempty"`

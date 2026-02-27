@@ -55,7 +55,7 @@ func (c *Cmd) genController(apiFile string, f *ast.File, decl *ast.GenDecl, spec
 		return false, err
 	}
 	// 存在则判断是否需要添加新方法
-	data, err := os.ReadFile(ctrlFile)
+	data, err := os.ReadFile(ctrlFile) //nolint:gosec // G304
 	if err != nil {
 		return false, err
 	}

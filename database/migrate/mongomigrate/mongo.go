@@ -54,7 +54,7 @@ func (m *MongoMigrate) Migrate(option ...Option) error {
 	if err != nil {
 		return err
 	}
-	defer curs.Close(m.ctx)
+	defer curs.Close(m.ctx) //nolint:errcheck
 	var records []*MongoMigrateTable
 	if err := curs.All(m.ctx, &records); err != nil {
 		return err
@@ -62,7 +62,7 @@ func (m *MongoMigrate) Migrate(option ...Option) error {
 	// 对比迁移记录和迁移函数
 	if len(records) > len(m.migrations) {
 		// 判断是否为pro并且拥有pre版本,那就忽略记录少的问题
-		if !(opts.hasPre && configs.Default().Env == configs.PROD) {
+		if !opts.hasPre || configs.Default().Env != configs.PROD {
 			return errors.New("migrate records more than migrate functions")
 		}
 	}

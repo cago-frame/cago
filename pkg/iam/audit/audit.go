@@ -101,6 +101,6 @@ func NewCtxAudit(ctx context.Context, audit *Audit) *CtxAudit {
 }
 
 func (c *CtxAudit) Record(eventName string, fields ...zap.Field) error {
-	fields = append(fields, c.Audit.fields...)
-	return c.Audit.storage.Record(c.Context, c.Audit.module, eventName, fields...)
+	fields = append(fields, c.fields...)
+	return c.storage.Record(c.Context, c.module, eventName, fields...)
 }

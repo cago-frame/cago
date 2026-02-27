@@ -45,7 +45,7 @@ func (v *KeyDepend) Val(ctx context.Context) (DependValue, error) {
 	if err := v.store.Get(ctx, v.key).Scan(&i); err != nil || i == -1 {
 		newValue := rand.Int64()
 		v.store.Set(ctx, v.key, Int64DependValue(newValue))
-		return Int64DependValue(newValue), nil
+		return Int64DependValue(newValue), nil //nolint:nilerr
 	}
 	return Int64DependValue(i), nil
 }

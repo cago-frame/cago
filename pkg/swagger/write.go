@@ -108,7 +108,7 @@ func (s *Swagger) Write() error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 	return s.writeGoDoc("docs", f, s.swagger)
 }
 
@@ -118,7 +118,7 @@ func (s *Swagger) writeGoDoc(packageName string, output io.Writer, swagger *spec
 			// Add schemes
 			v = "{\n    \"schemes\": {{ marshal .Schemes }}," + v[1:]
 			// Sanitize backticks
-			return strings.Replace(v, "`", "`+\"`\"+`", -1)
+			return strings.ReplaceAll(v, "`", "`+\"`\"+`")
 		},
 	}).Parse(packageTemplate)
 	if err != nil {

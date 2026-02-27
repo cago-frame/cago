@@ -2,10 +2,11 @@ package cache
 
 import (
 	"context"
+	"testing"
+
 	cache2 "github.com/cago-frame/cago/database/cache/cache"
 	"github.com/cago-frame/cago/database/cache/memory"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestDepend(t *testing.T) {
@@ -17,7 +18,7 @@ func TestDepend(t *testing.T) {
 	assert.Equal(t, int64(1), result)
 	err = dep.InvalidKey(context.Background())
 	assert.NoError(t, err)
-	result, err = c.Get(context.Background(), "test", WithDepend(cache2.NewKeyDepend(c, "test:dep"))).Int64()
+	_, err = c.Get(context.Background(), "test", WithDepend(cache2.NewKeyDepend(c, "test:dep"))).Int64()
 	assert.Error(t, err)
 
 	// 错误的depend格式

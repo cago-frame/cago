@@ -128,7 +128,7 @@ func (l *Logger) Trace(ctx context.Context, begin time.Time, fc func() (sql stri
 
 // ParamsFilter Trace print sql message
 func (l *Logger) ParamsFilter(ctx context.Context, sql string, params ...interface{}) (string, []interface{}) {
-	if l.Config.ParameterizedQueries {
+	if l.ParameterizedQueries {
 		return sql, nil
 	}
 	return sql, params

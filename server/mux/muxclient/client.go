@@ -194,7 +194,7 @@ func (c *Client) Do(ctx context.Context, req any, resp any, opts ...ClientDoOpti
 
 func (c *Client) HttpDo(httpReq *http.Request, resp any, opts ...ClientDoOption) error {
 	options := newDoOptions(opts...)
-	httpResp, err := c.options.client.Do(httpReq)
+	httpResp, err := c.options.client.Do(httpReq) //nolint:gosec // G704
 	if err != nil {
 		return err
 	}

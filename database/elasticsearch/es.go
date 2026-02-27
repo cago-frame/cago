@@ -17,7 +17,7 @@ import (
 type Config struct {
 	Address            []string
 	Username           string
-	Password           string
+	Password           string //nolint:gosec // G117
 	Cert               string
 	InsecureSkipVerify bool `yaml:"insecureSkipVerify"`
 }

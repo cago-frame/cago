@@ -73,7 +73,7 @@ func (c *Cmd) genService(apiFile string, f *ast.File, decl *ast.GenDecl, specs *
 			return err
 		}
 	}
-	data, err := os.ReadFile(serviceFile)
+	data, err := os.ReadFile(serviceFile) //nolint:gosec // G304
 	if err != nil {
 		return err
 	}
@@ -228,11 +228,11 @@ func (c *Cmd) genServiceFile(path string, f *ast.File, genDecl *ast.GenDecl, typ
 		appendStr += methodStr
 	}
 	// 写入文件
-	w, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
+	w, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644) //nolint:gosec // G304
 	if err != nil {
 		return err
 	}
-	defer w.Close()
+	defer w.Close() //nolint:errcheck
 	_, err = w.WriteString(appendStr)
 	return err
 }

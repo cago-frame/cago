@@ -22,7 +22,7 @@ type Type string
 type Config struct {
 	Type
 	Addr     string
-	Password string
+	Password string //nolint:gosec // G117
 	DB       int
 }
 

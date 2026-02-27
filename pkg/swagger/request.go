@@ -86,7 +86,7 @@ func (s *Swagger) parseRoute(filename string, file *ast.File, decl *ast.GenDecl,
 		if contentType == "" {
 			contentType = s.defaultContentType
 		}
-		operation.OperationProps.Consumes = []string{"application/" + contentType}
+		operation.Consumes = []string{"application/" + contentType}
 		// get请求,或者是非json请求,将参数单独解析出来
 		if method == http.MethodGet || contentType != JSONBodyType {
 			for _, field := range structSpec.Fields.List {
@@ -105,7 +105,7 @@ func (s *Swagger) parseRoute(filename string, file *ast.File, decl *ast.GenDecl,
 							return err
 						}
 						if schema.Type != nil {
-							for k, v := range schema.SchemaProps.Properties {
+							for k, v := range schema.Properties {
 								paramProps := spec.ParamProps{
 									Description: v.Description,
 									Name:        k,
@@ -217,7 +217,7 @@ func (s *Swagger) parseRoute(filename string, file *ast.File, decl *ast.GenDecl,
 				return err
 			}
 			for k := range ignoreField {
-				delete(schema.SchemaProps.Properties, k)
+				delete(schema.Properties, k)
 			}
 			ref := spec.MustCreateRef("#/definitions/" + file.Name.Name + "." + typeSpec.Name.Name)
 			s.swagger.Definitions[file.Name.Name+"."+typeSpec.Name.Name] = schema
@@ -304,13 +304,13 @@ func (s *Swagger) parseRoute(filename string, file *ast.File, decl *ast.GenDecl,
 		}
 		switch method {
 		case http.MethodGet:
-			pathItem.PathItemProps.Get = operation
+			pathItem.Get = operation
 		case http.MethodPost:
-			pathItem.PathItemProps.Post = operation
+			pathItem.Post = operation
 		case http.MethodPut:
-			pathItem.PathItemProps.Put = operation
+			pathItem.Put = operation
 		case http.MethodDelete:
-			pathItem.PathItemProps.Delete = operation
+			pathItem.Delete = operation
 		}
 		s.swagger.Paths.Paths[urlPath] = pathItem
 	}

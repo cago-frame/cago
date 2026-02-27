@@ -183,7 +183,7 @@ func ReadDir(path string, gen func(path string) error) error {
 
 // FindRootPkgName 根据go.mod搜寻根包名
 func FindRootPkgName(dir string) (string, string, error) {
-	f, err := os.OpenFile(path.Join(dir, "./go.mod"), os.O_RDONLY, 0644)
+	f, err := os.OpenFile(path.Join(dir, "./go.mod"), os.O_RDONLY, 0644) //nolint:gosec // G304
 	if err != nil {
 		if os.IsNotExist(err) {
 			// 向上层继续搜索
@@ -195,7 +195,7 @@ func FindRootPkgName(dir string) (string, string, error) {
 		}
 		return "", "", err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 	// 解析go.mod
 	b, err := io.ReadAll(f)
 	if err != nil {
@@ -219,11 +219,11 @@ func PkgToPath(rootPkg, rootPkgName, pkgName string) (string, error) {
 		return path.Join(rootPkg, pkgPath), nil
 	}
 	// 读取go.mod然后去GOPATH中寻找
-	f, err := os.OpenFile(path.Join(rootPkg, "./go.mod"), os.O_RDONLY, 0644)
+	f, err := os.OpenFile(path.Join(rootPkg, "./go.mod"), os.O_RDONLY, 0644) //nolint:gosec // G304
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 	// 解析go.mod
 	b, err := io.ReadAll(f)
 	if err != nil {

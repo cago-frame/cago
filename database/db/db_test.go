@@ -25,10 +25,10 @@ type Info struct {
 func TestDatabase(t *testing.T) {
 	db1, mock1, err := sqlmock.New()
 	assert.Nil(t, err)
-	defer db1.Close()
+	defer db1.Close() //nolint:errcheck
 	db2, mock2, err := sqlmock.New()
 	assert.Nil(t, err)
-	defer db2.Close()
+	defer db2.Close() //nolint:errcheck
 
 	RegisterDriver("mock", func(config *Config) gorm.Dialector {
 		if config.Dsn == "mock1" {

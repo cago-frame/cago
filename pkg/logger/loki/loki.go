@@ -18,7 +18,7 @@ type Config struct {
 	Enable   bool   `yaml:"enable"`
 	Url      string `yaml:"url"`
 	Username string `yaml:"username"`
-	Password string `yaml:"password"`
+	Password string `yaml:"password"` //nolint:gosec // G117
 }
 
 func init() {
@@ -123,14 +123,14 @@ func (l *lokiWriter) loop() {
 				req.SetBasicAuth(l.options.username, l.options.password)
 			}
 			req.Header.Set("Content-Type", "application/json")
-			resp, err := l.c.Do(req)
+			resp, err := l.c.Do(req) //nolint:gosec // G704
 			if err != nil {
 				log.Printf("loki push request err: %v", err)
 				break
 			}
 			buf := bytes.NewBuffer([]byte{})
 			func() {
-				defer resp.Body.Close()
+				defer resp.Body.Close() //nolint:errcheck
 				_, err = buf.ReadFrom(resp.Body)
 				if err != nil {
 					log.Printf("loki push response err: %v", err)
@@ -138,10 +138,10 @@ func (l *lokiWriter) loop() {
 				}
 			}()
 			if resp.StatusCode >= 400 {
-				log.Printf("loki push err: %v,status code: %v", buf.String(), resp.StatusCode)
+				log.Printf("loki push err: %v,status code: %v", buf.String(), resp.StatusCode) //nolint:gosec // G706
 			}
 		case <-l.ctx.Done():
-			break
+			return
 		}
 	}
 }

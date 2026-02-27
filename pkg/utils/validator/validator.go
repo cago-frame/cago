@@ -80,7 +80,7 @@ func (v *DefaultValidator) registerValidation() {
 					level++
 				}
 			}
-			return !(level < 2)
+			return level >= 2
 		}
 		return false
 	})

@@ -201,11 +201,11 @@ func (c *CtxRedis) ZAddArgsIncr(key string, args redis.ZAddArgs) *redis.FloatCmd
 	return c.Client.ZAddArgsIncr(c.ctx, key, args)
 }
 
-func (c *CtxRedis) ZRemRangeByScore(key, min, max string) *redis.IntCmd {
+func (c *CtxRedis) ZRemRangeByScore(key, min, max string) *redis.IntCmd { //nolint:predeclared
 	return c.Client.ZRemRangeByScore(c.ctx, key, min, max)
 }
 
-func (c *CtxRedis) ZRemRangeByLex(key, min, max string) *redis.IntCmd {
+func (c *CtxRedis) ZRemRangeByLex(key, min, max string) *redis.IntCmd { //nolint:predeclared
 	return c.Client.ZRemRangeByLex(c.ctx, key, min, max)
 }
 
