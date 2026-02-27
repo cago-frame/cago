@@ -48,6 +48,9 @@ func HandleResp(ctx *gin.Context, resp any) {
 // 否则根据err的类型进行处理，然后返回
 func HandleError(ctx *gin.Context, err error) error {
 	if err == nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, JSONResponse{
+			Code: -1, Msg: "unknown error",
+		})
 		return nil
 	}
 	var field []zap.Field
@@ -63,16 +66,22 @@ func HandleError(ctx *gin.Context, err error) error {
 		}
 	}
 	// 从trace中获取
+	requestId := RequestID(ctx)
 	switch data := err.(type) {
 	case *Error:
-		data.RequestID = RequestID(ctx)
+		data.RequestID = requestId
 		ctx.AbortWithStatusJSON(data.Status, data)
 	case validator.ValidationErrors:
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"code": -1, "msg": pkgValidator.TransError(data),
-		})
+		if requestId != "" {
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"code": -1, "msg": pkgValidator.TransError(data), "request_id": requestId,
+			})
+		} else {
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"code": -1, "msg": pkgValidator.TransError(data),
+			})
+		}
 	default:
-		requestId := RequestID(ctx)
 		field = append(field, zap.Error(data))
 		logger.Ctx(ctx).Error(
 			"internal server error",

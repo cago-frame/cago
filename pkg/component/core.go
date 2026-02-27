@@ -9,6 +9,7 @@ import (
 	"github.com/cago-frame/cago/database/cache"
 	"github.com/cago-frame/cago/database/db"
 	"github.com/cago-frame/cago/database/elasticsearch"
+	dbetcd "github.com/cago-frame/cago/database/etcd"
 	"github.com/cago-frame/cago/database/mongo"
 	"github.com/cago-frame/cago/database/redis"
 	"github.com/cago-frame/cago/pkg/broker"
@@ -91,6 +92,11 @@ func Redis() cago.FuncComponent {
 // Cache 缓存组件
 func Cache() cago.Component {
 	return cache.Cache()
+}
+
+// Etcd etcd组件
+func Etcd() cago.FuncComponent {
+	return dbetcd.Etcd
 }
 
 // Elasticsearch elasticsearch组件

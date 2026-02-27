@@ -18,6 +18,8 @@ etcd:
     endpoints:
         - 127.0.0.1:2379
     prefix: /config
+grpc:
+    address: 0.0.0.0:9090
 http:
     address:
         - :8080

@@ -11,6 +11,7 @@ import (
 	"github.com/cago-frame/cago/pkg/iam/audit"
 	"github.com/cago-frame/cago/pkg/iam/audit/audit_db"
 	"github.com/cago-frame/cago/server/cron"
+	cagogrpc "github.com/cago-frame/cago/server/grpc"
 
 	"github.com/cago-frame/cago/database/db"
 	"github.com/cago-frame/cago/pkg/component"
@@ -18,6 +19,7 @@ import (
 	"github.com/cago-frame/cago"
 	"github.com/cago-frame/cago/configs"
 	"github.com/cago-frame/cago/examples/simple/internal/api"
+	"github.com/cago-frame/cago/examples/simple/internal/rpc"
 	"github.com/cago-frame/cago/server/mux"
 )
 
@@ -52,6 +54,7 @@ func main() {
 		})).
 		Registry(cago.FuncComponent(task.Task)).
 		RegistryCancel(mux.HTTP(api.Router)).
+		RegistryCancel(cagogrpc.GRPC(rpc.Register)).
 		Start()
 	if err != nil {
 		log.Fatalf("start err: %v", err)

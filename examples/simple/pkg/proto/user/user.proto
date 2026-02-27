@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "github.com/cago-frame/cago/examples/simple/pkg/proto/user";
+
+service UserService {
+  // GetUser 根据用户ID获取用户信息
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+}
+
+message GetUserRequest {
+  int64 id = 1;
+}
+
+message GetUserResponse {
+  int64 id = 1;
+  string username = 2;
+}

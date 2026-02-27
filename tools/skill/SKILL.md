@@ -1,6 +1,6 @@
 ---
 name: cago
-description: "User-invocable skill for the Cago Go framework. ONLY use when the user explicitly invokes /cago. Do NOT auto-trigger. Provides project layout, API patterns (mux.Meta), controller/service/repository layer conventions, component usage (database, redis, cache, broker, cron), database migrations, message queue patterns, and complete code examples for the cago framework (github.com/cago-frame/cago)."
+description: "User-invocable skill for the Cago Go framework. ONLY use when the user explicitly invokes /cago. Do NOT auto-trigger. Provides project layout, API patterns (mux.Meta), controller/service/repository layer conventions, component usage (database, etcd, redis, cache, broker, cron, grpc), database migrations, message queue patterns, and complete code examples for the cago framework (github.com/cago-frame/cago)."
 ---
 
 # Cago Framework
@@ -28,9 +28,12 @@ internal/
     user_svc/user.go
   task/
     crontab/                 # Cron job handlers
-    queue/                   # Message queue
+    queue/                   # Message queue (basic)
       handler/               # Subscription handlers
       message/               # Message structs
+    producer/                # Message publishers (advanced)
+    consumer/                # Message subscribers (advanced)
+      subscribe/
   pkg/code/                  # Error codes + i18n
 migrations/                  # go-gormigrate migrations
 ```
@@ -53,7 +56,11 @@ type CreateUserResponse struct {
 ```
 
 Tags: `form` (query/body), `uri` (path param), `header`, `json` (response), `binding` (validation),
-`form:"key,default=value"`.
+`label` (i18n validation error), `form:"key,default=value"`.
+
+Custom validation: implement `Validate(ctx context.Context) error` on request struct.
+
+Pagination: embed `httputils.PageRequest` with `form:",inline"`.
 
 ### Handler Signatures
 
@@ -79,6 +86,8 @@ func Router(ctx context.Context, root *mux.Router) error {
     return nil
 }
 ```
+
+Nested middleware via `muxutils.BindTree` for complex route hierarchies.
 
 ### Service Pattern
 
@@ -111,8 +120,34 @@ Register in main.go: `user_repo.RegisterUser(user_repo.NewUser())`
 ```go
 db.Default()                    // Default *gorm.DB
 db.Ctx(ctx)                     // Context-aware (transaction support)
+db.CtxWith(ctx, "secondary")   // Context-aware with named DB fallback
 db.WithContextDB(ctx, tx)       // Set transaction in context
 db.RecordNotFound(err)          // Check not found
+```
+
+### Transaction Pattern
+
+```go
+err := db.Ctx(ctx).Transaction(func(tx *gorm.DB) error {
+    ctx = db.WithContextDB(ctx, tx)       // 关键：后续 db.Ctx(ctx) 自动使用事务
+    if err := repo1.Create(ctx, e1); err != nil { return err }
+    if err := repo2.Create(ctx, e2); err != nil { return err }
+    return nil
+})
+// 事务提交后再发布消息
+```
+
+### Redis & Cache
+
+```go
+redis.Ctx(ctx).Set("key", "value", time.Hour)   // Context-aware Redis
+redis.Nil(err)                                    // Check key not found
+
+cache.Ctx(ctx).GetOrSet("key", func() (interface{}, error) {  // Cache-aside
+    return db.Ctx(ctx).First(&entity).Error
+}, cache.WithDepend(keyDep), cache.Expiration(time.Hour)).Scan(&result)
+
+keyDep.InvalidKey(ctx)  // 使依赖失效，所有关联缓存自动刷新
 ```
 
 ### Error Codes (i18n)
@@ -124,11 +159,32 @@ const ( UserNotFound = iota + 10000; ... )
 var zhCN = map[int]string{ UserNotFound: "用户不存在" }
 // Usage
 return i18n.NewError(ctx, code.UserNotFound)
+return i18n.NewInternalError(ctx, code.ServerError)       // 500
+return i18n.NewErrorWithStatus(ctx, http.StatusNotFound, code.NotFound) // custom status
 ```
 
 ### Goroutines
 
 Always use `gogo.Go(ctx, func(ctx context.Context) error { ... })` for async work.
+
+### gRPC Server
+
+```go
+import grpcServer "github.com/cago-frame/cago/server/grpc"
+
+// 注册 gRPC 服务 (RegistryCancel，可以停止应用)
+grpcServer.GRPC(func(ctx context.Context, s *grpc.Server) error {
+    pb.RegisterUserServiceServer(s, &userServiceImpl{})
+    return nil
+})
+
+// 带自定义拦截器
+grpcServer.GRPC(registerServices,
+    grpc.ChainUnaryInterceptor(authInterceptor, logInterceptor),
+)
+```
+
+Config key: `grpc.address` (default `127.0.0.1:9090`). Auto-integrates OpenTelemetry tracing and metrics when `component.Core()` is registered.
 
 ## Conventions
 
@@ -140,7 +196,7 @@ Always use `gogo.Go(ctx, func(ctx context.Context) error { ... })` for async wor
 
 ## References
 
-- **Complete examples** (entry point, all layers, cron, queue, migration):
+- **Complete examples** (entry point, all layers, cron, queue, migration, advanced patterns):
   See [references/examples.md](references/examples.md)
-- **Components & configuration** (component system, config YAML, database, redis, cache, logger, broker, IAM, gogo):
+- **Components & configuration** (component system, config YAML, database, etcd, redis, cache, logger, trace, metrics, broker, gogo):
   See [references/components.md](references/components.md)

@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/cago-frame/cago/configs"
-
 	"github.com/cago-frame/cago/configs/file"
 	"github.com/cago-frame/cago/configs/source"
+	dbetcd "github.com/cago-frame/cago/database/etcd"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
@@ -19,7 +19,6 @@ func init() {
 		if err := cfg.Scan(context.Background(), "etcd", etcdConfig); err != nil {
 			return nil, err
 		}
-		var err error
 		etcdConfig.Prefix = path.Join(etcdConfig.Prefix, string(cfg.Env), cfg.AppName)
 		s, err := NewSource(etcdConfig, serialization)
 		if err != nil {
@@ -30,31 +29,24 @@ func init() {
 }
 
 type Config struct {
-	Endpoints []string
-	Username  string
-	Password  string
-	Prefix    string
+	dbetcd.Config `mapstructure:",squash"`
+	Prefix        string
 }
 
 type etcd struct {
-	*clientv3.Client
+	client        *dbetcd.Client
 	prefix        string
 	serialization file.Serialization
 }
 
 func NewSource(cfg *Config, serialization file.Serialization) (source.Source, error) {
-	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:            cfg.Endpoints,
-		Username:             cfg.Username,
-		Password:             cfg.Password,
-		DialTimeout:          10 * time.Second,
-		DialKeepAliveTimeout: 10 * time.Second,
-	})
+	cli, err := dbetcd.NewClient(&cfg.Config)
 	if err != nil {
 		return nil, err
 	}
+	dbetcd.SetDefault(cli)
 	return &etcd{
-		Client:        cli,
+		client:        dbetcd.NewCacheClient(cli, dbetcd.WithCache()),
 		prefix:        cfg.Prefix,
 		serialization: serialization,
 	}, nil
@@ -63,7 +55,8 @@ func NewSource(cfg *Config, serialization file.Serialization) (source.Source, er
 func (e *etcd) Scan(ctx context.Context, key string, value interface{}) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	resp, err := e.Client.Get(ctx, path.Join(e.prefix, key))
+	fullKey := path.Join(e.prefix, key)
+	resp, err := e.client.Get(ctx, fullKey)
 	if err != nil {
 		return fmt.Errorf("etcd %s: %w", key, err)
 	}
@@ -72,13 +65,12 @@ func (e *etcd) Scan(ctx context.Context, key string, value interface{}) error {
 		if err != nil {
 			return err
 		}
-		if _, err := e.Client.Put(ctx, path.Join(e.prefix, key), string(b)); err != nil {
+		if _, err := e.client.Put(ctx, fullKey, string(b)); err != nil {
 			return err
 		}
 		return fmt.Errorf("etcd %w: %s, initialized with default value", source.ErrNotFound, key)
 	}
-	err = e.serialization.Unmarshal(resp.Kvs[0].Value, value)
-	if err != nil {
+	if err := e.serialization.Unmarshal(resp.Kvs[0].Value, value); err != nil {
 		return fmt.Errorf("etcd unmarshal %s: %w", key, err)
 	}
 	return nil
@@ -87,7 +79,7 @@ func (e *etcd) Scan(ctx context.Context, key string, value interface{}) error {
 func (e *etcd) Has(ctx context.Context, key string) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	resp, err := e.Client.Get(ctx, path.Join(e.prefix, key))
+	resp, err := e.client.Get(ctx, path.Join(e.prefix, key))
 	if err != nil {
 		return false, fmt.Errorf("etcd %s: %w", key, err)
 	}
@@ -96,7 +88,7 @@ func (e *etcd) Has(ctx context.Context, key string) (bool, error) {
 
 func (e *etcd) Watch(ctx context.Context, key string, callback func(event source.Event)) error {
 	go func() {
-		w := e.Client.Watch(ctx, path.Join(e.prefix, key))
+		w := e.client.Watch(ctx, path.Join(e.prefix, key))
 		for v := range w {
 			if v.Err() != nil {
 				break
