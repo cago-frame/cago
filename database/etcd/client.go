@@ -80,16 +80,18 @@ func (c *Client) Put(ctx context.Context, key, val string, opts ...clientv3.OpOp
 	return resp, nil
 }
 
-// Delete 删除key，启用缓存时先移除缓存再删除etcd，避免中间窗口读到已删除的值
+// Delete 删除key，启用缓存时先删除etcd再移除缓存，保证一致性
 func (c *Client) Delete(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.DeleteResponse, error) {
 	if c.enableCache {
 		c.mu.Lock()
-		delete(c.cache, key)
-		c.mu.Unlock()
+		defer c.mu.Unlock()
 	}
 	resp, err := c.Client.Delete(ctx, key, opts...)
 	if err != nil {
 		return nil, err
+	}
+	if c.enableCache {
+		delete(c.cache, key)
 	}
 	return resp, nil
 }

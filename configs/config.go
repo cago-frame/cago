@@ -119,7 +119,11 @@ func (c *Config) findKey(ctx context.Context, key string, value interface{}) err
 				reflect.ValueOf(value).Elem().Set(reflect.ValueOf(v))
 				return nil
 			}
-			valueMap = v.(map[string]interface{})
+			var ok bool
+			valueMap, ok = v.(map[string]interface{})
+			if !ok {
+				return nil
+			}
 		} else {
 			return nil
 		}

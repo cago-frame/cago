@@ -2,6 +2,7 @@ package mux
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/cago-frame/cago/configs"
 	"github.com/cago-frame/cago/pkg/utils/httputils"
@@ -23,6 +24,8 @@ func Recover() gin.HandlerFunc {
 			httputils.HandleResp(c, err)
 		case string:
 			httputils.HandleResp(c, errors.New(err))
+		default:
+			httputils.HandleResp(c, fmt.Errorf("unknown panic: %v", err))
 		}
 	})
 }

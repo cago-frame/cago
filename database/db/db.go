@@ -155,11 +155,13 @@ func (d *DB) Start(ctx context.Context, config *configs.Config) error {
 }
 
 func (d *DB) CloseHandle() {
-	db, _ := d.defaultDb.DB()
-	_ = db.Close()
+	if sqlDB, err := d.defaultDb.DB(); err == nil {
+		_ = sqlDB.Close()
+	}
 	for _, v := range d.dbs {
-		db, _ := v.DB()
-		_ = db.Close()
+		if sqlDB, err := v.DB(); err == nil {
+			_ = sqlDB.Close()
+		}
 	}
 }
 

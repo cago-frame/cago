@@ -62,7 +62,7 @@ func (l *userSvc) Register(ctx context.Context, req *api.RegisterRequest) (*api.
 	}
 	// 创建用户
 	_, err = user_repo.User().Register(ctx, &authn.RegisterRequest{
-		Username: req.Password,
+		Username: req.Username,
 		Password: req.Password,
 	})
 	if err != nil {

@@ -47,15 +47,17 @@ func NewRefreshHTTPSessionManager(sessionManager, refreshSessionManager sessions
 		TokenDuration:   7200,
 		RefreshDuration: 86400 * 30,
 		ResponseFunc: func(ctx *gin.Context, accessToken, refreshToken *sessions.Session) error {
+			expire, _ := accessToken.Metadata["expire"].(int64)
+			refreshExpire, _ := refreshToken.Metadata["expire"].(int64)
 			ctx.SetCookie("access_token", accessToken.ID,
-				int(accessToken.Metadata["expire"].(int64)), "/", "", false, true)
+				int(expire), "/", "", false, true)
 			ctx.JSON(http.StatusOK, httputils.JSONResponse{
 				Code: 0,
 				Data: &RefreshSessionResponse{
 					AccessToken:   accessToken.ID,
 					RefreshToken:  refreshToken.ID,
-					Expire:        accessToken.Metadata["expire"].(int64),
-					RefreshExpire: refreshToken.Metadata["expire"].(int64),
+					Expire:        expire,
+					RefreshExpire: refreshExpire,
 				},
 			})
 			return nil
@@ -121,7 +123,7 @@ func (h *refreshHTTPSessionManager) GetFromRequest(ctx *gin.Context) (*sessions.
 			if err != nil {
 				return nil, err
 			}
-			if refreshSession.Values["access_token"].(string) != id {
+			if accessTokenVal, _ := refreshSession.Values["access_token"].(string); accessTokenVal != id {
 				return nil, sessions.ErrSessionNotFound
 			}
 			session, err = h.Start(ctx)

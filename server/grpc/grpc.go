@@ -119,7 +119,11 @@ func (s *server) StartCancel(
 
 	// 启动grpc服务
 	_ = gogo.Go(ctx, func(ctx context.Context) error {
-		defer cancel()
+		defer func() {
+			if cancel != nil {
+				cancel()
+			}
+		}()
 		l.Info("grpc server started", zap.String("address", config.Address))
 		if err := srv.Serve(lis); err != nil {
 			l.Error("failed to start grpc server", zap.Error(err))

@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/cago-frame/cago/configs/source"
 )
@@ -14,6 +15,12 @@ type Memory struct {
 func NewSource(config map[string]interface{}) source.Source {
 	if _, ok := config["debug"]; !ok {
 		config["debug"] = true
+	}
+	if _, ok := config["env"]; !ok {
+		config["env"] = "dev"
+	}
+	if _, ok := config["source"]; !ok {
+		config["source"] = ""
 	}
 	return &Memory{
 		config: config,
@@ -28,7 +35,7 @@ func (e *Memory) Scan(ctx context.Context, key string, value interface{}) error 
 		}
 		return json.Unmarshal(b, value)
 	}
-	return nil
+	return fmt.Errorf("memory %w: %s", source.ErrNotFound, key)
 }
 
 func (e *Memory) Has(ctx context.Context, key string) (bool, error) {

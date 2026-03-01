@@ -36,7 +36,8 @@ func (v *KeyDepend) InvalidKey(ctx context.Context) error {
 type Int64DependValue int64
 
 func (i Int64DependValue) Equate(d DependValue) bool {
-	return i == d.(Int64DependValue)
+	v, ok := d.(Int64DependValue)
+	return ok && i == v
 }
 
 // Val 获取依赖的值

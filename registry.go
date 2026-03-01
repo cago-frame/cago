@@ -79,8 +79,8 @@ func (r *Cago) Start() error {
 	case <-r.ctx.Done():
 	}
 	r.info(r.cfg.AppName + " is stopping...")
-	for _, v := range r.components {
-		v.CloseHandle()
+	for i := len(r.components) - 1; i >= 0; i-- {
+		r.components[i].CloseHandle()
 	}
 	// 等待所有组件退出
 	stopCh := make(chan struct{})

@@ -32,9 +32,8 @@ func Handle(ctx *gin.Context, f func() interface{}) {
 // 4. 其他情况会返回 200 状态码，并返回数据
 func HandleResp(ctx *gin.Context, resp any) {
 	if err, ok := resp.(error); ok {
-		if err := HandleError(ctx, err); err != nil {
-			return
-		}
+		_ = HandleError(ctx, err)
+		return
 	}
 	ctx.JSON(http.StatusOK, JSONResponse{
 		Code: 0,
@@ -48,9 +47,6 @@ func HandleResp(ctx *gin.Context, resp any) {
 // 否则根据err的类型进行处理，然后返回
 func HandleError(ctx *gin.Context, err error) error {
 	if err == nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, JSONResponse{
-			Code: -1, Msg: "unknown error",
-		})
 		return nil
 	}
 	var field []zap.Field

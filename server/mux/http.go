@@ -104,7 +104,11 @@ func (h *server) StartCancel(
 	})
 	// 启动http服务
 	_ = gogo.Go(ctx, func(ctx context.Context) error {
-		defer cancel()
+		defer func() {
+			if cancel != nil {
+				cancel()
+			}
+		}()
 		if err := srv.ListenAndServe(); err != nil {
 			if errors.Is(err, http.ErrServerClosed) {
 				return nil
