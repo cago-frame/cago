@@ -1,6 +1,6 @@
 ---
 name: cago
-description: "User-invocable skill for the Cago Go framework. ONLY use when the user explicitly invokes /cago. Do NOT auto-trigger. Provides project layout, API patterns (mux.Meta), controller/service/repository layer conventions, component usage (database, etcd, redis, cache, broker, cron, grpc), database migrations, message queue patterns, and complete code examples for the cago framework (github.com/cago-frame/cago)."
+description: "Cago Go framework skill. Provides project layout, API patterns (mux.Meta), controller/service/repository layer conventions, component usage (database, etcd, redis, cache, broker, cron, grpc), database migrations, message queue patterns, TDD workflow, and complete code examples for the cago framework (github.com/cago-frame/cago).\nTRIGGER when: code imports `github.com/cago-frame/cago`, go.mod contains cago dependency, user mentions cago framework, or user explicitly invokes /cago.\nDO NOT TRIGGER when: project does not use cago framework, general Go questions unrelated to cago."
 ---
 
 # Cago Framework
@@ -217,6 +217,84 @@ grpcServer.GRPC(registerServices,
 ```
 
 Config key: `grpc.address` (default `127.0.0.1:9090`). Auto-integrates OpenTelemetry tracing and metrics when `component.Core()` is registered.
+
+## TDD Development Workflow (Recommended)
+
+When developing with Cago, follow TDD (Test-Driven Development) to ensure code quality and design clarity:
+
+### Workflow
+
+1. **Write API definition** — Define request/response structs in `internal/api/`
+2. **Write tests first** — Create test file in controller directory, write test cases covering expected behavior (success + error scenarios)
+3. **Run tests → verify they fail** — `go test -v -run TestXxx ./internal/controller/xxx_ctr/...`
+4. **Implement code** — Write controller → service → repository layer code to make tests pass
+5. **Run tests → verify they pass** — All test cases should be green
+6. **Refactor** — Clean up code while keeping tests passing, then run `make lint`
+
+### TDD Step-by-Step Example
+
+**Step 1: Define API**
+
+```go
+// internal/api/user/user.go
+type CreateUserRequest struct {
+    mux.Meta `path:"/user" method:"POST"`
+    Username string `form:"username" binding:"required"`
+}
+type CreateUserResponse struct {
+    ID int64 `json:"id"`
+}
+```
+
+**Step 2: Write test first (tests will fail — service/repo not yet implemented)**
+
+```go
+// internal/controller/user_ctr/user_test.go
+func TestUserCreate(t *testing.T) {
+    ctx, mockUserRepo, testMux := setupUserTest(t)
+
+    convey.Convey("创建用户", t, func() {
+        convey.Convey("创建成功", func() {
+            mockUserRepo.EXPECT().FindByUsername(gomock.Any(), "newuser").Return(nil, nil)
+            mockUserRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+            resp := &api.CreateUserResponse{}
+            err := testMux.Do(ctx, &api.CreateUserRequest{Username: "newuser"}, resp)
+            assert.NoError(t, err)
+            assert.True(t, resp.ID > 0)
+        })
+        convey.Convey("用户名已存在", func() {
+            mockUserRepo.EXPECT().FindByUsername(gomock.Any(), "existuser").Return(&user_entity.User{ID: 1}, nil)
+            resp := &api.CreateUserResponse{}
+            err := testMux.Do(ctx, &api.CreateUserRequest{Username: "existuser"}, resp)
+            assert.Error(t, err)
+        })
+    })
+}
+```
+
+**Step 3: Run tests → RED (fail)**
+
+```bash
+go test -v -run TestUserCreate ./internal/controller/user_ctr/...
+```
+
+**Step 4: Implement controller, service, repository to make tests pass**
+
+**Step 5: Run tests → GREEN (pass)**
+
+**Step 6: Refactor + lint**
+
+```bash
+go test -v -run TestUserCreate ./internal/controller/user_ctr/...
+make lint
+```
+
+### Key Principles
+
+- **Tests define behavior** — Write tests based on requirements before writing implementation
+- **Mock external dependencies** — Use `go.uber.org/mock` for repository interfaces, making tests fast and isolated
+- **Cover edge cases** — Each `Convey` block represents a scenario (success, validation error, not found, duplicate, etc.)
+- **Small iterations** — Implement one feature at a time: write test → implement → pass → next feature
 
 ## Unit Testing
 

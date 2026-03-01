@@ -25,6 +25,7 @@ The main skill file containing core knowledge for AI:
 - **Repository Pattern** — Interface + Register/accessor + `db.Ctx(ctx)` queries
 - **Database Access** — `db.Default()`, `db.Ctx(ctx)`, transaction pattern
 - **Error Codes i18n** — Error code definition + multi-language registration
+- **TDD Workflow** — Recommended Test-Driven Development process with step-by-step example
 - **Conventions** — Comments, testing tools, lint rules, mock generation
 
 ### references/examples.md
@@ -68,7 +69,7 @@ Detailed documentation of the component system and configuration:
 ln -s $(pwd)/tools/skill ~/.claude/skills/cago
 ```
 
-After installation, use the `/cago` command in Claude Code:
+The skill auto-triggers when code imports `github.com/cago-frame/cago` or the project's `go.mod` contains a cago dependency. You can also explicitly invoke it with `/cago`:
 
 ```
 /cago Create a CRUD API for user management
