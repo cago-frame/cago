@@ -18,9 +18,11 @@ internal/
     user/user.go             # Request/Response per domain
     router.go                # Route registration
   controller/                # Thin layer: validate + forward to service
-    user_ctr/user.go
+    user_ctr/
+      user.go
+      user_test.go           # Unit tests per module
   model/
-    entity/                  # GORM entities（充血模型，含业务逻辑方法）
+    entity/                  # GORM entities (Rich Domain Model, with business logic methods)
       user_entity/user.go
   repository/                # Data access (GORM queries)
     user_repo/user.go
@@ -89,9 +91,9 @@ func Router(ctx context.Context, root *mux.Router) error {
 
 Nested middleware via `muxutils.BindTree` for complex route hierarchies.
 
-### Entity（充血模型）
+### Entity (Rich Domain Model)
 
-Entity 采用充血模型（Rich Domain Model），不仅包含数据字段，还封装与该实体相关的业务逻辑方法（如校验、状态判断等），避免将所有逻辑堆积在 Service 层。
+Entities follow the Rich Domain Model pattern — they contain not only data fields but also encapsulate business logic methods related to the entity (e.g., validation, status checks), avoiding piling all logic into the Service layer.
 
 ```go
 // model/entity/user_entity/user.go
@@ -104,7 +106,7 @@ type User struct {
     Updatetime     int64  `gorm:"column:updatetime;type:bigint(20)"`
 }
 
-// 实体方法：封装与 User 相关的业务逻辑
+// Entity method: encapsulates business logic related to User
 func (u *User) Check(ctx context.Context) error {
     if u == nil {
         return i18n.NewError(ctx, code.UserNotFound)
@@ -116,8 +118,8 @@ func (u *User) Check(ctx context.Context) error {
 }
 ```
 
-适合放在 Entity 中的逻辑：存在性校验、状态判断、字段格式化、简单的业务规则。
-不适合放在 Entity 中的逻辑：跨实体协作、依赖外部服务（如调用 Repository 或第三方 API）。
+Suitable for Entity: existence checks, status validation, field formatting, simple business rules.
+Not suitable for Entity: cross-entity coordination, dependencies on external services (e.g., calling Repository or third-party APIs).
 
 ### Service Pattern
 
@@ -159,12 +161,12 @@ db.RecordNotFound(err)          // Check not found
 
 ```go
 err := db.Ctx(ctx).Transaction(func(tx *gorm.DB) error {
-    ctx = db.WithContextDB(ctx, tx)       // 关键：后续 db.Ctx(ctx) 自动使用事务
+    ctx = db.WithContextDB(ctx, tx)       // Key: subsequent db.Ctx(ctx) calls automatically use the transaction
     if err := repo1.Create(ctx, e1); err != nil { return err }
     if err := repo2.Create(ctx, e2); err != nil { return err }
     return nil
 })
-// 事务提交后再发布消息
+// Publish messages after transaction commits
 ```
 
 ### Redis & Cache
@@ -177,7 +179,7 @@ cache.Ctx(ctx).GetOrSet("key", func() (interface{}, error) {  // Cache-aside
     return db.Ctx(ctx).First(&entity).Error
 }, cache.WithDepend(keyDep), cache.Expiration(time.Hour)).Scan(&result)
 
-keyDep.InvalidKey(ctx)  // 使依赖失效，所有关联缓存自动刷新
+keyDep.InvalidKey(ctx)  // Invalidate dependency, all associated caches auto-refresh
 ```
 
 ### Error Codes (i18n)
@@ -202,19 +204,89 @@ Always use `gogo.Go(ctx, func(ctx context.Context) error { ... })` for async wor
 ```go
 import grpcServer "github.com/cago-frame/cago/server/grpc"
 
-// 注册 gRPC 服务 (RegistryCancel，可以停止应用)
+// Register gRPC service (RegistryCancel, can stop the app)
 grpcServer.GRPC(func(ctx context.Context, s *grpc.Server) error {
     pb.RegisterUserServiceServer(s, &userServiceImpl{})
     return nil
 })
 
-// 带自定义拦截器
+// With custom interceptors
 grpcServer.GRPC(registerServices,
     grpc.ChainUnaryInterceptor(authInterceptor, logInterceptor),
 )
 ```
 
 Config key: `grpc.address` (default `127.0.0.1:9090`). Auto-integrates OpenTelemetry tracing and metrics when `component.Core()` is registered.
+
+## Unit Testing
+
+Test files are placed in the corresponding controller directory, one test file per module:
+
+```
+internal/controller/
+  user_ctr/
+    user.go
+    user_test.go       # User module tests
+  example_ctr/
+    example.go
+    example_test.go    # Example module tests
+```
+
+### Test Setup Pattern
+
+Each test file has a `setupXxxTest` function that initializes dependencies, mock, and routes:
+
+```go
+func setupUserTest(t *testing.T) (context.Context, *mock_user_repo.MockUserRepo, *muxtest.TestMux) {
+    testutils.Cache(t)
+    mockCtrl := gomock.NewController(t)
+    t.Cleanup(func() { mockCtrl.Finish() })
+
+    ctx := context.Background()
+    mockUserRepo := mock_user_repo.NewMockUserRepo(mockCtrl)
+    user_repo.RegisterUser(mockUserRepo)
+
+    // Register only the routes needed for this module
+    testMux := muxtest.NewTestMux()
+    r := testMux.Group("/api/v1")
+    ctr := NewUser()
+    r.Group("/").Bind(ctr.Create, ctr.List)
+
+    return ctx, mockUserRepo, testMux
+}
+```
+
+Key points:
+- Use `broker.SetBroker(event_bus.NewEvBusBroker())` if broker is needed
+- Register only the routes relevant to the module being tested
+
+### Test Structure
+
+Use GoConvey for BDD-style nested tests, one `TestXxx` per feature:
+
+```go
+func TestUserCreate(t *testing.T) {
+    ctx, mockUserRepo, testMux := setupUserTest(t)
+
+    convey.Convey("创建用户", t, func() {
+        convey.Convey("创建成功", func() {
+            mockUserRepo.EXPECT().FindByUsername(gomock.Any(), "newuser").Return(nil, nil)
+            mockUserRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+            resp := &api.CreateResponse{}
+            err := testMux.Do(ctx, &api.CreateRequest{Username: "newuser"}, resp)
+            assert.NoError(t, err)
+        })
+        convey.Convey("用户名已存在", func() {
+            mockUserRepo.EXPECT().FindByUsername(gomock.Any(), "existuser").Return(&user_entity.User{
+                ID: 1, Username: "existuser", Status: consts.ACTIVE,
+            }, nil)
+            resp := &api.CreateResponse{}
+            err := testMux.Do(ctx, &api.CreateRequest{Username: "existuser"}, resp)
+            assert.Error(t, err)
+        })
+    })
+}
+```
 
 ## Conventions
 
@@ -226,7 +298,7 @@ Config key: `grpc.address` (default `127.0.0.1:9090`). Auto-integrates OpenTelem
 
 ## References
 
-- **Complete examples** (entry point, all layers, cron, queue, migration, advanced patterns):
+- **Complete examples** (entry point, all layers, cron, queue, migration, unit testing, advanced patterns):
   See [references/examples.md](references/examples.md)
 - **Components & configuration** (component system, config YAML, database, etcd, redis, cache, logger, trace, metrics, broker, gogo):
   See [references/components.md](references/components.md)

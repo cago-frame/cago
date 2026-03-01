@@ -155,14 +155,14 @@ db.RecordNotFound(err)             // Check if gorm.ErrRecordNotFound
 
 ### Transaction Pattern
 
-将事务 tx 放入 context 后，后续所有使用 `db.Ctx(ctx)` 的代码自动在事务中执行：
+After putting the transaction tx into context, all subsequent code using `db.Ctx(ctx)` automatically executes within the transaction:
 
 ```go
 err := db.Ctx(ctx).Transaction(func(tx *gorm.DB) error {
-    // 关键：将 tx 放入 context，后续 db.Ctx(ctx) 自动使用事务
+    // Key: put tx into context, subsequent db.Ctx(ctx) calls automatically use the transaction
     ctx := db.WithContextDB(ctx, tx)
 
-    // 所有 repository 方法透明使用事务
+    // All repository methods transparently use the transaction
     if err := scriptRepo.Create(ctx, script); err != nil {
         return err
     }
@@ -176,7 +176,7 @@ if err != nil {
     return nil, err
 }
 
-// 事务提交后再发布消息
+// Publish messages after transaction commits
 if err := producer.PublishScriptCreate(ctx, script, scriptCode); err != nil {
     return nil, err
 }
@@ -185,14 +185,14 @@ if err := producer.PublishScriptCreate(ctx, script, scriptCode); err != nil {
 ### Multi-database Usage
 
 ```go
-// 通过 context 切换数据库
+// Switch database via context
 ctx = db.WithContext(ctx, "secondary")
-db.Ctx(ctx)  // 使用 secondary 数据库
+db.Ctx(ctx)  // Uses secondary database
 
-// 直接使用
+// Direct usage
 db.Use("secondary").Where("id=?", 1).First(&entity)
 
-// CtxWith: 从 context 获取，若无则使用指定的命名数据库
+// CtxWith: get from context, fallback to the specified named database
 db.CtxWith(ctx, "secondary")
 ```
 
@@ -209,17 +209,17 @@ db.RegisterDriver(db.Driver("custom"), func(cfg *db.Config) gorm.Dialector {
 ```go
 import "github.com/cago-frame/cago/database/redis"
 
-redis.Default()           // *redis.Client (原始客户端)
-redis.Ctx(ctx)            // *CtxRedis (自动传递 context 的包装)
-redis.Nil(err)            // 检查 err 是否为 redis.Nil (key 不存在)
+redis.Default()           // *redis.Client (raw client)
+redis.Ctx(ctx)            // *CtxRedis (context-aware wrapper)
+redis.Nil(err)            // Check if err is redis.Nil (key not found)
 ```
 
 ### Context-Aware Usage
 
-`redis.Ctx(ctx)` 返回的 `CtxRedis` 自动为所有操作传递 context，无需每次手动传：
+`redis.Ctx(ctx)` returns a `CtxRedis` that automatically passes context for all operations, no need to pass it manually each time:
 
 ```go
-// 使用 Ctx 包装 (推荐)
+// Using Ctx wrapper (recommended)
 redis.Ctx(ctx).Set("key", "value", time.Hour)
 redis.Ctx(ctx).Get("key")
 redis.Ctx(ctx).Del("key")
@@ -233,17 +233,17 @@ redis.Ctx(ctx).Expire("key", time.Hour)
 redis.Ctx(ctx).Exists("key")
 redis.Ctx(ctx).TTL("key")
 
-// 检查 key 不存在
+// Check if key does not exist
 val, err := redis.Ctx(ctx).Get("key").Result()
 if redis.Nil(err) {
-    // key 不存在
+    // key does not exist
 }
 
-// 直接使用原始客户端
+// Direct usage with raw client
 redis.Default().Set(ctx, "key", "value", 0).Err()
 ```
 
-### CtxRedis 支持的操作
+### Supported CtxRedis Operations
 
 - **String**: Get, Set, SetNX, SetXX, SetEx, SetRange, GetRange, GetSet
 - **Numeric**: Incr, IncrBy, IncrByFloat, Decr, DecrBy
@@ -251,7 +251,7 @@ redis.Default().Set(ctx, "key", "value", 0).Err()
 - **List**: LPush, RPush, LPop, RPop, LLen, LRange, LTrim, LRem
 - **Hash**: HGet, HSet, HDel, HGetAll, HIncrBy, HIncrByFloat, HExists, HKeys, HLen, HSetNX, HVals, HScan
 - **HyperLogLog**: PFCount, PFAdd, PFMerge
-- **Sorted Set**: ZAdd, ZAddNX, ZAddXX, ZAddArgs, ZAddArgsIncr, ZRemRangeByScore, ZRemRangeByLex, ZRemRangeByRank, ZRevRangeByScore, ZRangeWithScores, ZRangeByScore, ZRangeByLex 等
+- **Sorted Set**: ZAdd, ZAddNX, ZAddXX, ZAddArgs, ZAddArgsIncr, ZRemRangeByScore, ZRemRangeByLex, ZRemRangeByRank, ZRevRangeByScore, ZRangeWithScores, ZRangeByScore, ZRangeByLex, etc.
 
 ## Cache
 
@@ -262,15 +262,15 @@ import (
     "github.com/cago-frame/cago/database/cache/cache/memory"
 )
 
-cache.Default()              // Cache 接口
-cache.Ctx(ctx)               // *CtxCache (自动传递 context)
-cache.IsNil(err)             // 检查 err 是否为 ErrNil (key 不存在)
-cache.Expiration(dur)        // 设置过期时间选项
-cache.WithDepend(dep)        // 设置依赖失效选项
-cache.NewPrefixCache(prefix, c)  // 带前缀的 cache 包装
+cache.Default()              // Cache interface
+cache.Ctx(ctx)               // *CtxCache (context-aware)
+cache.IsNil(err)             // Check if err is ErrNil (key not found)
+cache.Expiration(dur)        // Set expiration option
+cache.WithDepend(dep)        // Set dependency invalidation option
+cache.NewPrefixCache(prefix, c)  // Prefixed cache wrapper
 ```
 
-### 基本操作
+### Basic Operations
 
 ```go
 // Set with expiration
@@ -290,33 +290,33 @@ err := cache.Ctx(ctx).Del("key")
 
 // Check if key not found
 if cache.IsNil(err) {
-    // key 不存在
+    // key does not exist
 }
 ```
 
-### GetOrSet 模式 (Cache-Aside)
+### GetOrSet Pattern (Cache-Aside)
 
-自动处理缓存未命中，回源获取数据后存入缓存：
+Automatically handles cache misses, fetches data from source and stores in cache:
 
 ```go
 user := &User{}
 err := cache.Ctx(ctx).GetOrSet("user:123", func() (interface{}, error) {
-    // 缓存未命中时执行，从数据库获取
+    // Executed on cache miss, fetches from database
     return userRepo.FindFromDB(ctx, 123)
 }, cache.Expiration(time.Hour)).Scan(user)
 ```
 
-### KeyDepend 依赖失效模式
+### KeyDepend Dependency Invalidation Pattern
 
-通过依赖 key 实现缓存级联失效。当数据变更时，只需 InvalidKey 一次，所有依赖该 key 的缓存自动失效：
+Cascading cache invalidation via dependency keys. When data changes, just call InvalidKey once and all caches depending on that key are automatically invalidated:
 
 ```go
-// Repository 中定义 KeyDepend
+// Define KeyDepend in Repository
 func (u *scriptRepo) KeyDepend(id int64) *cache2.KeyDepend {
     return cache2.NewKeyDepend(cache.Default(), "script:"+strconv.FormatInt(id, 10)+":dep")
 }
 
-// 读取时带上依赖
+// Include dependency when reading
 func (u *scriptRepo) Find(ctx context.Context, id int64) (*entity.Script, error) {
     ret := &entity.Script{}
     err := cache.Ctx(ctx).GetOrSet("script:"+strconv.FormatInt(id, 10), func() (interface{}, error) {
@@ -334,7 +334,7 @@ func (u *scriptRepo) Find(ctx context.Context, id int64) (*entity.Script, error)
     return ret, nil
 }
 
-// 写入时使依赖失效，所有使用该 KeyDepend 的缓存都会被刷新
+// Invalidate dependency on write, all caches using this KeyDepend will be refreshed
 func (u *scriptRepo) Update(ctx context.Context, script *entity.Script) error {
     if err := db.Ctx(ctx).Updates(script).Error; err != nil {
         return err
@@ -343,17 +343,17 @@ func (u *scriptRepo) Update(ctx context.Context, script *entity.Script) error {
 }
 ```
 
-### Memory Cache (进程内缓存)
+### Memory Cache (In-Process)
 
-适用于大数据量的本地缓存，避免频繁 Redis 请求：
+Suitable for local caching of large data to avoid frequent Redis requests:
 
 ```go
 import "github.com/cago-frame/cago/database/cache/cache/memory"
 
-// 创建内存缓存实例
+// Create memory cache instance
 memCache, _ := memory.NewMemoryCache()
 
-// 用于 repository 中缓存大数据 (如代码内容)
+// For caching large data in repository (e.g., code content)
 type codeRepo struct {
     memoryCache cache2.Cache
 }
@@ -363,7 +363,7 @@ func NewCodeRepo() *codeRepo {
     return &codeRepo{memoryCache: c}
 }
 
-// 使用内存缓存 + KeyDepend
+// Use memory cache + KeyDepend
 func (u *codeRepo) FindLatest(ctx context.Context, id int64) (*entity.Code, error) {
     ret := &entity.Code{}
     err := u.memoryCache.GetOrSet(ctx, "code:"+strconv.FormatInt(id, 10), func() (interface{}, error) {
@@ -373,10 +373,10 @@ func (u *codeRepo) FindLatest(ctx context.Context, id int64) (*entity.Code, erro
 }
 ```
 
-### PrefixCache (命名空间隔离)
+### PrefixCache (Namespace Isolation)
 
 ```go
-// 为不同模块创建独立的缓存命名空间
+// Create isolated cache namespaces for different modules
 userCache := cache.NewPrefixCache("user:", cache.Default())
 scriptCache := cache.NewPrefixCache("script:", cache.Default())
 ```
@@ -387,42 +387,42 @@ scriptCache := cache.NewPrefixCache("script:", cache.Default())
 import "github.com/cago-frame/cago/database/etcd"
 ```
 
-### 基本用法
+### Basic Usage
 
 ```go
-etcd.Default()  // *clientv3.Client (原始客户端)
+etcd.Default()  // *clientv3.Client (raw client)
 ```
 
-### 带缓存的客户端
+### Cached Client
 
-`etcd.Client` 封装 `clientv3.Client`，方法签名完全一致。通过 `WithCache()` 启用可选的内存缓存：
+`etcd.Client` wraps `clientv3.Client` with identical method signatures. Enable optional in-memory caching via `WithCache()`:
 
 ```go
-// 创建带缓存的客户端
+// Create a cached client
 cli := etcd.NewCacheClient(etcd.Default(), etcd.WithCache())
 
-// Get — 启用缓存时首次从 etcd 读取并缓存，后续直接返回缓存
+// Get — with cache enabled, first read from etcd and cache, subsequent reads return from cache
 resp, err := cli.Get(ctx, "/config/key")
 
-// Put — 在写锁内完成 etcd 写入和缓存更新，保证一致性
+// Put — completes etcd write and cache update within a write lock, ensuring consistency
 _, err := cli.Put(ctx, "/config/key", "value")
 
-// Delete — 先移除缓存再删除 etcd，避免读到已删除的旧值
+// Delete — removes cache first then deletes from etcd, avoiding stale reads
 _, err := cli.Delete(ctx, "/config/key")
 
-// Watch — 启用缓存时通过代理 channel 自动更新缓存
+// Watch — with cache enabled, automatically updates cache via proxy channel
 watchCh := cli.Watch(ctx, "/config/key")
 for resp := range watchCh {
-    // PUT 事件自动更新缓存，DELETE 事件自动移除缓存
+    // PUT events auto-update cache, DELETE events auto-remove cache
     for _, ev := range resp.Events {
-        // 处理事件...
+        // Handle events...
     }
 }
 ```
 
-不启用缓存时所有方法直接透传到 `clientv3.Client`，无额外开销。
+Without cache enabled, all methods pass through directly to `clientv3.Client` with no overhead.
 
-### 配置
+### Configuration
 
 ```yaml
 etcd:
@@ -432,16 +432,16 @@ etcd:
   password: ""
 ```
 
-### 作为配置中心
+### As Configuration Center
 
-etcd 可作为配置源，替代文件配置。配置中的 key 会自动缓存并通过 Watch 实时同步：
+Etcd can serve as a configuration source, replacing file-based config. Keys are automatically cached and synced in real-time via Watch:
 
 ```yaml
-source: etcd       # 切换为 etcd 配置源（默认 file）
+source: etcd       # Switch to etcd config source (default: file)
 etcd:
   endpoints:
     - 127.0.0.1:2379
-  prefix: /config  # etcd 中的路径前缀
+  prefix: /config  # Path prefix in etcd
 ```
 
 ## Logger
@@ -456,28 +456,28 @@ logger.WithContextLogger(ctx, l)    // Set logger in context
 
 ### Context Logger Enrichment
 
-在 middleware 中丰富 logger 上下文，后续代码自动带上这些字段：
+Enrich logger context in middleware, subsequent code automatically includes these fields:
 
 ```go
-// Middleware 中添加用户信息
+// Add user info in middleware
 ctx = logger.WithContextLogger(ctx, logger.Ctx(ctx).With(
     zap.Int64("user_id", user.ID),
 ))
 
-// 后续代码自动带上 user_id
-logger.Ctx(ctx).Info("操作成功")  // 日志中自动包含 user_id 字段
-logger.Ctx(ctx).Error("操作失败", zap.Error(err))
+// Subsequent code automatically includes user_id
+logger.Ctx(ctx).Info("operation succeeded")  // Logs automatically include user_id field
+logger.Ctx(ctx).Error("operation failed", zap.Error(err))
 ```
 
 ## OpenTelemetry
 
-### Trace (分布式追踪)
+### Trace (Distributed Tracing)
 
-Auto-instrumented for DB, Redis, HTTP. 启用 trace 后自动：
-- 为每个 HTTP 请求创建 span
-- 将 trace_id 注入 HTTP 响应头 `X-Trace-Id`
-- 为 DB 查询、Redis 操作、Broker 消息自动创建子 span
-- 在 logger 中自动添加 trace_id 和 span_id 字段
+Auto-instrumented for DB, Redis, HTTP. When trace is enabled, it automatically:
+- Creates a span for each HTTP request
+- Injects trace_id into HTTP response header `X-Trace-Id`
+- Creates child spans for DB queries, Redis operations, and Broker messages
+- Adds trace_id and span_id fields to logger automatically
 
 #### Manual Spans
 
@@ -495,7 +495,7 @@ span.SetAttributes(attribute.Int64("user_id", userId))
 ```go
 import "github.com/cago-frame/cago/pkg/opentelemetry/trace"
 
-// 从 context 获取当前 span 并设置属性
+// Get current span from context and set attributes
 trace.SpanFromContext(ctx).SetAttributes(
     attribute.Int64("user_id", user.ID),
 )
@@ -505,24 +505,24 @@ trace.SpanFromContext(ctx).SetAttributes(
 
 ```yaml
 trace:
-  endpoint: "localhost:4317"    # OTLP collector 地址
-  sample: 1                     # 采样率: 0=不采样, 0-1=百分比, 1=全采样
-  useSSL: false                 # 是否启用 SSL/TLS
-  # type: "grpc"                # "grpc" (默认), "http", "noop"
-  # header:                     # 自定义 OTLP 头
+  endpoint: "localhost:4317"    # OTLP collector address
+  sample: 1                     # Sample rate: 0=never, 0-1=percentage, 1=always
+  useSSL: false                 # Enable SSL/TLS
+  # type: "grpc"                # "grpc" (default), "http", "noop"
+  # header:                     # Custom OTLP headers
   #   Authorization: "Bearer xxx"
 ```
 
 ### Metrics (Prometheus)
 
-自动采集的 HTTP 指标：
-- `http_request_total` — 请求总数
-- `http_request_duration` — 请求耗时分布 (100ms, 300ms, 500ms, 1s, 2s, 5s, 10s)
-- `http_request_body_size` — 请求体大小
-- `http_response_body_size` — 响应体大小
-- `http_status_code` — 状态码分布
+Auto-collected HTTP metrics:
+- `http_request_total` — Total request count
+- `http_request_duration` — Request duration distribution (100ms, 300ms, 500ms, 1s, 2s, 5s, 10s)
+- `http_request_body_size` — Request body size
+- `http_response_body_size` — Response body size
+- `http_status_code` — Status code distribution
 
-指标暴露在 `GET /metrics` 端点 (Prometheus 格式)。
+Metrics are exposed at `GET /metrics` endpoint (Prometheus format).
 
 ## gRPC Server
 
@@ -530,7 +530,7 @@ trace:
 import "github.com/cago-frame/cago/server/grpc"
 ```
 
-### 基本用法
+### Basic Usage
 
 ```go
 grpc.GRPC(func(ctx context.Context, s *grpc.Server) error {
@@ -539,18 +539,18 @@ grpc.GRPC(func(ctx context.Context, s *grpc.Server) error {
 })
 ```
 
-### 配置
+### Configuration
 
 ```yaml
 grpc:
-  address: "0.0.0.0:9090"   # 默认 127.0.0.1:9090
+  address: "0.0.0.0:9090"   # Default: 127.0.0.1:9090
 ```
 
-### 自定义拦截器（中间件）
+### Custom Interceptors (Middleware)
 
-gRPC 的中间件通过 `grpc.ServerOption`（拦截器）实现，支持两种注册方式：
+gRPC middleware is implemented via `grpc.ServerOption` (interceptors), supporting two registration methods:
 
-#### 1. 构造函数传入
+#### 1. Pass via Constructor
 
 ```go
 grpc.GRPC(registerServices,
@@ -559,7 +559,7 @@ grpc.GRPC(registerServices,
 )
 ```
 
-#### 2. 全局注册（类似 mux.RegisterMiddleware）
+#### 2. Global Registration (similar to mux.RegisterMiddleware)
 
 ```go
 grpc.RegisterServerOption(func(cfg *configs.Config) ([]grpc.ServerOption, error) {
@@ -569,13 +569,13 @@ grpc.RegisterServerOption(func(cfg *configs.Config) ([]grpc.ServerOption, error)
 })
 ```
 
-### OpenTelemetry 自动集成
+### Automatic OpenTelemetry Integration
 
-当注册了 trace 或 metrics 组件时，gRPC 服务器自动接入 OpenTelemetry：
-- **Tracing** — 每个 RPC 调用自动创建 span，通过 `otelgrpc.NewServerHandler()` 实现
-- **Metrics** — 自动记录 RPC 请求数、延迟、消息大小等指标
+When trace or metrics components are registered, the gRPC server automatically integrates with OpenTelemetry:
+- **Tracing** — Automatically creates a span for each RPC call via `otelgrpc.NewServerHandler()`
+- **Metrics** — Automatically records RPC request count, latency, message size, and other metrics
 
-无需手动配置，只要在 gRPC 之前注册 `component.Core()` 即可。
+No manual configuration needed — just register `component.Core()` before gRPC.
 
 ## Broker
 
@@ -585,7 +585,7 @@ import (
     broker2 "github.com/cago-frame/cago/pkg/broker/broker"
 )
 
-broker.Default()  // Broker 接口
+broker.Default()  // Broker interface
 ```
 
 ### Publish
@@ -602,17 +602,17 @@ err := broker.Default().Publish(ctx, "topic_name", &broker2.Message{
 subscriber, err := broker.Default().Subscribe(ctx, "topic_name",
     func(ctx context.Context, event broker2.Event) error {
         msg := event.Message()
-        // 处理消息 msg.Body
+        // Process message msg.Body
         return nil
     },
     // Options:
-    broker2.Retry(),              // 处理失败时重试
-    broker2.NotAutoAck(),         // 禁用自动 ack，需手动 event.Ack()
-    broker2.Group("my-group"),    // 消费者组 (默认使用 app name)
-    broker2.WithConcurrent(3),    // 并发消费者数量 (默认 1)
+    broker2.Retry(),              // Retry on processing failure
+    broker2.NotAutoAck(),         // Disable auto ack, must manually call event.Ack()
+    broker2.Group("my-group"),    // Consumer group (defaults to app name)
+    broker2.WithConcurrent(3),    // Concurrent consumer count (default: 1)
 )
 
-// 取消订阅
+// Unsubscribe
 defer subscriber.Unsubscribe()
 ```
 
@@ -620,43 +620,43 @@ defer subscriber.Unsubscribe()
 
 ```go
 type Event interface {
-    Topic() string                        // Topic 名
-    Message() *Message                    // 消息内容 (Header + Body)
-    Ack() error                           // 确认消息已处理
-    Requeue(delay time.Duration) error    // 重新入队 (延迟重试)
-    Attempted() int                       // 重试次数
-    Error() error                         // 处理错误
+    Topic() string                        // Topic name
+    Message() *Message                    // Message content (Header + Body)
+    Ack() error                           // Acknowledge message as processed
+    Requeue(delay time.Duration) error    // Requeue (delayed retry)
+    Attempted() int                       // Retry count
+    Error() error                         // Processing error
 }
 ```
 
-### 手动 Ack 模式
+### Manual Ack Mode
 
 ```go
 broker.Default().Subscribe(ctx, "topic",
     func(ctx context.Context, event broker2.Event) error {
         msg := event.Message()
         if err := processMessage(ctx, msg); err != nil {
-            // 失败时延迟 5 秒重试
+            // Retry with 5 second delay on failure
             return event.Requeue(5 * time.Second)
         }
         return event.Ack()
     },
-    broker2.NotAutoAck(),  // 必须手动 ack
+    broker2.NotAutoAck(),  // Must manually ack
 )
 ```
 
 ### Trace Context Propagation
 
-Broker 自动在 Message.Header 中传播 trace context。发布消息时注入 trace，订阅消息时提取 trace，实现跨服务链路追踪。
+Broker automatically propagates trace context in Message.Header. Trace is injected when publishing messages and extracted when subscribing, enabling cross-service distributed tracing.
 
 ### NSQ vs EventBus
 
-| 特性 | NSQ | EventBus |
-|------|-----|----------|
-| 持久化 | 是 | 否 (内存) |
-| 重试 | 支持 | 不支持 |
-| 多实例消费 | 支持 (group) | 不支持 |
-| 适用场景 | 生产环境 | 开发/测试 |
+| Feature | NSQ | EventBus |
+|---------|-----|----------|
+| Persistence | Yes | No (in-memory) |
+| Retry | Supported | Not supported |
+| Multi-instance consumption | Supported (group) | Not supported |
+| Use case | Production | Development/Testing |
 
 ```yaml
 # NSQ
@@ -667,7 +667,7 @@ broker:
     nsqlookupaddr:
       - "127.0.0.1:4161"
 
-# EventBus (开发/测试)
+# EventBus (development/testing)
 broker:
   type: eventbus
 ```

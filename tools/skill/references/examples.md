@@ -14,6 +14,7 @@
 - [Message Queue](#message-queue)
 - [Database Migration](#database-migration)
 - [gRPC Server](#grpc-server)
+- [Unit Testing](#unit-testing)
 - [Advanced Patterns](#advanced-patterns)
 
 ## Application Entry Point
@@ -122,13 +123,13 @@ Request structs can implement `Validate(ctx context.Context) error` for complex 
 ```go
 type CreateScriptRequest struct {
     mux.Meta    `path:"/scripts" method:"POST"`
-    Content     string `form:"content" binding:"required,max=102400" label:"脚本详细描述"`
-    Code        string `form:"code" binding:"required,max=10485760" label:"脚本代码"`
-    Name        string `form:"name" binding:"max=128" label:"库名"`
+    Content     string `form:"content" binding:"required,max=102400" label:"script description"`
+    Code        string `form:"code" binding:"required,max=10485760" label:"script code"`
+    Name        string `form:"name" binding:"max=128" label:"library name"`
     Type        int    `form:"type" binding:"required"`
 }
 
-// 自定义校验逻辑，在 binding 校验之后执行
+// Custom validation logic, executed after binding validation
 func (s *CreateScriptRequest) Validate(ctx context.Context) error {
     if s.Type == entity.LibraryType {
         s.Name = strings.TrimSpace(s.Name)
@@ -145,7 +146,7 @@ func (s *CreateScriptRequest) Validate(ctx context.Context) error {
 ```go
 type ListRequest struct {
     mux.Meta              `path:"/scripts" method:"GET"`
-    httputils.PageRequest `form:",inline"`  // 内嵌分页参数 (page, size)
+    httputils.PageRequest `form:",inline"`  // Embedded pagination params (page, size)
     Keyword               string `form:"keyword"`
     Sort                  string `form:"sort,default=today_download" binding:"oneof=today_update today_download total_download score createtime"`
 }
@@ -338,9 +339,9 @@ func (u *userRepo) Delete(ctx context.Context, id int64) error {
 }
 ```
 
-## Entity（充血模型）
+## Entity (Rich Domain Model)
 
-Entity 采用充血模型，包含数据字段和业务逻辑方法：
+Entities follow the Rich Domain Model pattern, containing both data fields and business logic methods:
 
 ```go
 // internal/model/entity/user_entity/user.go
@@ -355,7 +356,7 @@ type User struct {
     Updatetime     int64  `gorm:"column:updatetime;type:bigint(20)"`
 }
 
-// Entity 上的业务校验方法
+// Business validation method on the entity
 func (u *User) Check(ctx context.Context) error {
     if u == nil {
         return i18n.NewError(ctx, code.UserNotFound)
@@ -432,7 +433,7 @@ Environment-based cron:
 
 ```go
 func Crontab(ctx context.Context, cfg *configs.Config) error {
-    // PRE 环境不执行定时任务，避免与生产冲突
+    // Skip cron jobs in PRE environment to avoid conflicts with production
     if configs.Default().Env == configs.PRE {
         return nil
     }
@@ -518,13 +519,13 @@ func (u *Example) example(ctx context.Context, msg *message.ExampleMsg) error {
 }
 ```
 
-### 消息中避免大数据
+### Avoid Large Data in Messages
 
 ```go
-// 消息中只传 ID，不传完整数据 (避免 MQ payload 过大)
+// Only pass IDs in messages, not full data (avoid oversized MQ payloads)
 type ScriptCreateMsg struct {
     Script *script_entity.Script
-    CodeID int64  // 只传 ID，消费者自己查询完整数据
+    CodeID int64  // Only pass ID, consumers query full data themselves
 }
 ```
 
@@ -625,7 +626,7 @@ func (s *userGRPCService) GetUser(ctx context.Context, req *pb.GetUserRequest) (
 }
 ```
 
-### 带自定义拦截器
+### With Custom Interceptors
 
 ```go
 import (
@@ -633,7 +634,7 @@ import (
     "google.golang.org/grpc"
 )
 
-// main.go 中注册
+// Register in main.go
 grpcServer.GRPC(api.GRPCRouter,
     grpc.ChainUnaryInterceptor(authInterceptor),
 )
@@ -643,7 +644,7 @@ grpcServer.GRPC(api.GRPCRouter,
 
 ### Transaction with Context Propagation
 
-Service 中使用事务，通过 context 传播到所有 repository 调用：
+Use transactions in Service, propagated to all repository calls via context:
 
 ```go
 func (s *scriptSvc) Create(ctx context.Context, req *api.CreateRequest) (*api.CreateResponse, error) {
@@ -661,22 +662,22 @@ func (s *scriptSvc) Create(ctx context.Context, req *api.CreateRequest) (*api.Cr
     }
 
     err := db.Ctx(ctx).Transaction(func(tx *gorm.DB) error {
-        // 关键：将 tx 放入 context
+        // Key: put tx into context
         ctx = db.WithContextDB(ctx, tx)
 
-        // 所有使用 db.Ctx(ctx) 的 repository 自动使用事务
+        // All repositories using db.Ctx(ctx) automatically use the transaction
         if err := script_repo.Script().Create(ctx, script); err != nil {
-            logger.Ctx(ctx).Error("创建脚本失败", zap.Error(err))
+            logger.Ctx(ctx).Error("failed to create script", zap.Error(err))
             return i18n.NewInternalError(ctx, code.ScriptCreateFailed)
         }
 
         scriptCode.ScriptID = script.ID
         if err := script_repo.ScriptCode().Create(ctx, scriptCode); err != nil {
-            logger.Ctx(ctx).Error("创建代码失败", zap.Error(err))
+            logger.Ctx(ctx).Error("failed to create code", zap.Error(err))
             return i18n.NewInternalError(ctx, code.ScriptCreateFailed)
         }
 
-        // 关联分类、标签等
+        // Link categories, tags, etc.
         if err := Category().LinkScriptCategory(ctx, script.ID, req.CategoryID); err != nil {
             return err
         }
@@ -687,9 +688,9 @@ func (s *scriptSvc) Create(ctx context.Context, req *api.CreateRequest) (*api.Cr
         return nil, err
     }
 
-    // 事务提交后再发布异步消息
+    // Publish async messages after transaction commits
     if err := producer.PublishScriptCreate(ctx, script, scriptCode); err != nil {
-        logger.Ctx(ctx).Error("发布创建消息失败", zap.Error(err))
+        logger.Ctx(ctx).Error("failed to publish create message", zap.Error(err))
     }
 
     return &api.CreateResponse{ID: script.ID}, nil
@@ -698,7 +699,7 @@ func (s *scriptSvc) Create(ctx context.Context, req *api.CreateRequest) (*api.Cr
 
 ### Repository with Cache-Aside and KeyDepend
 
-Repository 使用缓存 + 依赖失效模式：
+Repository with cache-aside + dependency invalidation pattern:
 
 ```go
 type scriptRepo struct{}
@@ -711,7 +712,7 @@ func (u *scriptRepo) KeyDepend(id int64) *cache2.KeyDepend {
     return cache2.NewKeyDepend(cache.Default(), u.key(id)+":dep")
 }
 
-// 读取带缓存
+// Read with cache
 func (u *scriptRepo) Find(ctx context.Context, id int64) (*entity.Script, error) {
     ret := &entity.Script{}
     err := cache.Ctx(ctx).GetOrSet(u.key(id), func() (interface{}, error) {
@@ -729,7 +730,7 @@ func (u *scriptRepo) Find(ctx context.Context, id int64) (*entity.Script, error)
     return ret, nil
 }
 
-// 创建时使缓存失效
+// Invalidate cache on create
 func (u *scriptRepo) Create(ctx context.Context, script *entity.Script) error {
     if err := db.Ctx(ctx).Create(script).Error; err != nil {
         return err
@@ -737,7 +738,7 @@ func (u *scriptRepo) Create(ctx context.Context, script *entity.Script) error {
     return u.KeyDepend(script.ID).InvalidKey(ctx)
 }
 
-// 更新时使缓存失效
+// Invalidate cache on update
 func (u *scriptRepo) Update(ctx context.Context, script *entity.Script) error {
     if err := db.Ctx(ctx).Updates(script).Error; err != nil {
         return err
@@ -748,7 +749,7 @@ func (u *scriptRepo) Update(ctx context.Context, script *entity.Script) error {
 
 ### Memory Cache for Large Data
 
-对大数据 (如代码内容) 使用内存缓存，避免频繁访问 Redis：
+Use in-memory cache for large data (e.g., code content) to avoid frequent Redis access:
 
 ```go
 import "github.com/cago-frame/cago/database/cache/cache/memory"
@@ -769,7 +770,7 @@ func (u *codeRepo) FindLatest(ctx context.Context, scriptId int64, withCode bool
     err := u.memoryCache.GetOrSet(ctx, cacheKey, func() (interface{}, error) {
         q := db.Ctx(ctx)
         if !withCode {
-            q = q.Select(ret.Fields())  // 不需要代码时排除大字段
+            q = q.Select(ret.Fields())  // Exclude large fields when code is not needed
         }
         if err := q.Order("createtime desc").
             First(ret, "script_id=? and status=?", scriptId, consts.ACTIVE).Error; err != nil {
@@ -787,7 +788,7 @@ func (u *codeRepo) FindLatest(ctx context.Context, scriptId int64, withCode bool
 
 ### RouterTree (Nested Middleware)
 
-使用 `muxutils.BindTree` 构建嵌套中间件树：
+Use `muxutils.BindTree` to build nested middleware trees:
 
 ```go
 import "github.com/cago-frame/cago/server/mux/muxutils"
@@ -795,7 +796,7 @@ import "github.com/cago-frame/cago/server/mux/muxutils"
 func (s *Script) Router(root *mux.Router, r *mux.Router) {
     muxutils.BindTree(r, []*muxutils.RouterTree{
         {
-            // 公开接口
+            // Public routes
             Middleware: []gin.HandlerFunc{optionalAuthMiddleware},
             Handler: []interface{}{
                 s.List,
@@ -803,16 +804,16 @@ func (s *Script) Router(root *mux.Router, r *mux.Router) {
             },
         },
         {
-            // 需要登录
+            // Requires authentication
             Middleware: []gin.HandlerFunc{requireAuthMiddleware},
             Handler: []interface{}{
                 s.Create,
-                // 嵌套：需要登录 + 资源权限检查
+                // Nested: requires auth + resource permission check
                 &muxutils.RouterTree{
                     Middleware: []gin.HandlerFunc{requireResourceMiddleware},
                     Handler: []interface{}{
                         s.Watch,
-                        // 更深层嵌套：需要登录 + 资源权限 + 写权限
+                        // Deeper nesting: requires auth + resource permission + write permission
                         &muxutils.RouterTree{
                             Middleware: []gin.HandlerFunc{
                                 writePermissionMiddleware,
@@ -833,7 +834,7 @@ func (s *Script) Router(root *mux.Router, r *mux.Router) {
 
 ### Rate Limiting with Redis
 
-Controller 中使用组合限流：
+Use combination rate limiting in Controller:
 
 ```go
 import "github.com/cago-frame/cago/pkg/limit"
@@ -845,8 +846,8 @@ type Script struct {
 func NewScript() *Script {
     return &Script{
         limit: limit.NewCombinationLimit(
-            limit.NewPeriodLimit(300, 6, redis.Default(), "limit:create:script:minute"),   // 5分钟6次
-            limit.NewPeriodLimit(3600, 8, redis.Default(), "limit:create:script:hour"),    // 1小时8次
+            limit.NewPeriodLimit(300, 6, redis.Default(), "limit:create:script:minute"),   // 6 per 5 minutes
+            limit.NewPeriodLimit(3600, 8, redis.Default(), "limit:create:script:hour"),    // 8 per hour
         ),
     }
 }
@@ -865,17 +866,17 @@ func (s *Script) Create(ctx context.Context, req *api.CreateRequest) (*api.Creat
 
 ### Context Enrichment (Logger + Trace)
 
-在 middleware 中丰富 context，为后续代码自动添加日志和 trace 字段：
+Enrich context in middleware to automatically add logger and trace fields for subsequent code:
 
 ```go
-// Middleware 中丰富 logger 和 trace
+// Enrich logger and trace in middleware
 func enrichContext(ctx context.Context, userID int64) context.Context {
-    // 添加到 trace span
+    // Add to trace span
     trace.SpanFromContext(ctx).SetAttributes(
         attribute.Int64("user_id", userID),
     )
 
-    // 添加到 logger context (后续 logger.Ctx(ctx) 自动带上 user_id)
+    // Add to logger context (subsequent logger.Ctx(ctx) calls automatically include user_id)
     ctx = logger.WithContextLogger(ctx, logger.Ctx(ctx).With(
         zap.Int64("user_id", userID),
     ))
@@ -883,7 +884,7 @@ func enrichContext(ctx context.Context, userID int64) context.Context {
     return ctx
 }
 
-// Gin middleware 中修改 request context
+// Modify request context in Gin middleware
 func MyMiddleware() gin.HandlerFunc {
     return func(ctx *gin.Context) {
         newCtx := enrichContext(ctx.Request.Context(), getUserID(ctx))
@@ -894,7 +895,7 @@ func MyMiddleware() gin.HandlerFunc {
 
 ### Entity Validation Methods
 
-Entity 上定义校验方法，在 service 层复用：
+Define validation methods on Entity, reusable in the service layer:
 
 ```go
 type Script struct {
@@ -905,7 +906,7 @@ type Script struct {
     // ...
 }
 
-// 检查是否可操作 (存在且未删除)
+// Check if operable (exists and not deleted)
 func (s *Script) CheckOperate(ctx context.Context) error {
     if s == nil {
         return i18n.NewErrorWithStatus(ctx, http.StatusNotFound, code.ScriptNotFound)
@@ -916,7 +917,7 @@ func (s *Script) CheckOperate(ctx context.Context) error {
     return nil
 }
 
-// 检查权限 (是否是作者)
+// Check permission (is the author)
 func (s *Script) CheckPermission(ctx context.Context, currentUserID int64) error {
     if err := s.CheckOperate(ctx); err != nil {
         return err
@@ -927,7 +928,7 @@ func (s *Script) CheckPermission(ctx context.Context, currentUserID int64) error
     return nil
 }
 
-// 检查是否已归档
+// Check if archived
 func (s *Script) IsArchive(ctx context.Context) error {
     if err := s.CheckOperate(ctx); err != nil {
         return err
@@ -941,10 +942,10 @@ func (s *Script) IsArchive(ctx context.Context) error {
 
 ### Consumer/Producer Pattern
 
-将 MQ 生产者和消费者分离到不同模块：
+Separate MQ producers and consumers into different modules:
 
 ```go
-// internal/task/producer/script.go - 生产者
+// internal/task/producer/script.go - Producer
 package producer
 
 const ScriptCreateTopic = "script.create"
@@ -957,7 +958,7 @@ type ScriptCreateMsg struct {
 func PublishScriptCreate(ctx context.Context, script *script_entity.Script, code *script_entity.Code) error {
     body, _ := json.Marshal(&ScriptCreateMsg{
         Script: script,
-        CodeID: code.ID,  // 只传 ID，避免 payload 过大
+        CodeID: code.ID,  // Only pass ID to avoid oversized payloads
     })
     return broker.Default().Publish(ctx, ScriptCreateTopic, &broker2.Message{Body: body})
 }
@@ -975,7 +976,7 @@ func SubscribeScriptCreate(ctx context.Context, fn func(ctx context.Context, scr
 ```
 
 ```go
-// internal/task/consumer/subscribe/es_sync.go - 消费者
+// internal/task/consumer/subscribe/es_sync.go - Consumer
 type EsSync struct{}
 
 func (e *EsSync) Subscribe(ctx context.Context) error {
@@ -983,51 +984,180 @@ func (e *EsSync) Subscribe(ctx context.Context) error {
 }
 
 func (e *EsSync) onScriptCreate(ctx context.Context, script *script_entity.Script, codeID int64) error {
-    // 同步到 Elasticsearch
+    // Sync to Elasticsearch
     return script_repo.Migrate().Index(ctx, script)
 }
 ```
 
-### Testing Patterns
+## Unit Testing
+
+Test files are placed in the corresponding controller directory, one test file per module.
+
+### File Organization
+
+```
+internal/controller/
+  user_ctr/
+    user.go
+    user_test.go           # User module tests
+  example_ctr/
+    example.go
+    example_test.go        # Example module tests
+```
+
+### Test Setup
+
+Each test file has a `setupXxxTest` function that initializes mock dependencies and registers routes.
 
 ```go
-func TestRouter(t *testing.T) {
-    // Setup mock infrastructure
+// internal/controller/user_ctr/user_test.go
+package user_ctr
+
+import (
+    "context"
+    "testing"
+
+    api "yourapp/internal/api/user"
+    "yourapp/internal/model/entity/user_entity"
+    "yourapp/internal/repository/user_repo"
+    mock_user_repo "yourapp/internal/repository/user_repo/mock"
+    "github.com/cago-frame/cago/pkg/consts"
+    "github.com/cago-frame/cago/pkg/utils/testutils"
+    "github.com/cago-frame/cago/server/mux/muxtest"
+    "github.com/smartystreets/goconvey/convey"
+    "github.com/stretchr/testify/assert"
+    "go.uber.org/mock/gomock"
+)
+
+func setupUserTest(t *testing.T) (context.Context, *mock_user_repo.MockUserRepo, *muxtest.TestMux) {
     testutils.Cache(t)
     mockCtrl := gomock.NewController(t)
-    defer mockCtrl.Finish()
+    t.Cleanup(func() { mockCtrl.Finish() })
 
-    // Mock repository
+    ctx := context.Background()
     mockUserRepo := mock_user_repo.NewMockUserRepo(mockCtrl)
     user_repo.RegisterUser(mockUserRepo)
 
-    // Setup test HTTP mux
+    // Register only the routes needed for this controller module
     testMux := muxtest.NewTestMux()
-    err := Router(context.Background(), testMux.Router)
-    assert.Nil(t, err)
+    r := testMux.Group("/api/v1")
+    userCtr := NewUser()
+    r.Group("/").Bind(
+        userCtr.Create,
+        userCtr.List,
+    )
 
-    convey.Convey("用户注册", t, func() {
-        mockUserRepo.EXPECT().FindByUsername(gomock.Any(), "test").Return(nil, nil)
-        mockUserRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+    return ctx, mockUserRepo, testMux
+}
+```
 
-        resp := &user.RegisterResponse{}
-        err := testMux.Do(ctx, &user.RegisterRequest{
-            Username: "test",
-            Password: "qwe123",
-        }, resp)
-        assert.NoError(t, err)
+### Test Examples — CRUD Module
 
-        convey.Convey("重复注册失败", func() {
-            mockUserRepo.EXPECT().FindByUsername(gomock.Any(), "test").Return(&user_entity.User{
-                ID: 1, Username: "test", Status: consts.ACTIVE,
+```go
+func TestUserCreate(t *testing.T) {
+    ctx, mockUserRepo, testMux := setupUserTest(t)
+
+    convey.Convey("创建用户", t, func() {
+        convey.Convey("创建成功", func() {
+            mockUserRepo.EXPECT().FindByUsername(gomock.Any(), "newuser").Return(nil, nil)
+            mockUserRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+            resp := &api.CreateResponse{}
+            err := testMux.Do(ctx, &api.CreateRequest{
+                Username: "newuser",
+                Password: "password123",
+            }, resp)
+            assert.NoError(t, err)
+            assert.NotZero(t, resp.ID)
+        })
+        convey.Convey("用户名已存在", func() {
+            mockUserRepo.EXPECT().FindByUsername(gomock.Any(), "existuser").Return(&user_entity.User{
+                ID: 1, Username: "existuser", Status: consts.ACTIVE,
             }, nil)
-            resp := &user.RegisterResponse{}
-            err := testMux.Do(ctx, &user.RegisterRequest{
-                Username: "test",
-                Password: "qwe123",
+            resp := &api.CreateResponse{}
+            err := testMux.Do(ctx, &api.CreateRequest{
+                Username: "existuser",
+                Password: "password123",
             }, resp)
             assert.Error(t, err)
         })
     })
 }
+
+func TestUserFind(t *testing.T) {
+    ctx, mockUserRepo, testMux := setupUserTest(t)
+
+    convey.Convey("查询用户", t, func() {
+        convey.Convey("查询成功", func() {
+            mockUserRepo.EXPECT().Find(gomock.Any(), int64(1)).Return(&user_entity.User{
+                ID: 1, Username: "test", Status: consts.ACTIVE,
+            }, nil)
+            resp := &api.FindResponse{}
+            err := testMux.Do(ctx, &api.FindRequest{ID: 1}, resp)
+            assert.NoError(t, err)
+            assert.Equal(t, "test", resp.Username)
+        })
+        convey.Convey("用户不存在", func() {
+            mockUserRepo.EXPECT().Find(gomock.Any(), int64(999)).Return(nil, nil)
+            resp := &api.FindResponse{}
+            err := testMux.Do(ctx, &api.FindRequest{ID: 999}, resp)
+            assert.Error(t, err)
+        })
+    })
+}
 ```
+
+### Test Example — Module with Broker
+
+When testing modules that depend on the broker (message queue), set up an in-memory broker:
+
+```go
+// internal/controller/example_ctr/example_test.go
+package example_ctr
+
+import (
+    "github.com/cago-frame/cago/pkg/broker"
+    "github.com/cago-frame/cago/pkg/broker/event_bus"
+    // ... other imports
+)
+
+func setupExampleTest(t *testing.T) (context.Context, *mock_user_repo.MockUserRepo, *muxtest.TestMux) {
+    testutils.Cache(t)
+    mockCtrl := gomock.NewController(t)
+    t.Cleanup(func() { mockCtrl.Finish() })
+
+    ctx := context.Background()
+    mockUserRepo := mock_user_repo.NewMockUserRepo(mockCtrl)
+    user_repo.RegisterUser(mockUserRepo)
+
+    broker.SetBroker(event_bus.NewEvBusBroker())  // In-memory broker for testing
+
+    testMux := muxtest.NewTestMux()
+    r := testMux.Group("/api/v1")
+    exampleCtr := NewExample()
+    r.Group("/").Bind(exampleCtr.Ping)
+
+    return ctx, mockUserRepo, testMux
+}
+
+func TestExamplePing(t *testing.T) {
+    ctx, _, testMux := setupExampleTest(t)
+
+    convey.Convey("Ping", t, func() {
+        resp := &api.PingResponse{}
+        err := testMux.Do(ctx, &api.PingRequest{}, resp)
+        assert.NoError(t, err)
+        assert.NotEmpty(t, resp.Pong)
+    })
+}
+```
+
+### Testing Key Points
+
+| Item | Convention |
+|------|-----------|
+| Test file location | `internal/controller/<module>_ctr/<module>_test.go` |
+| Broker for tests | `broker.SetBroker(event_bus.NewEvBusBroker())` (in-memory) |
+| Mock generation | `//go:generate mockgen -source user.go -destination mock/user.go` |
+| Test framework | GoConvey (`convey.Convey`) + testify (`assert`) + gomock |
+| One TestXxx per feature | `TestUserCreate`, `TestUserFind`, `TestExamplePing`, etc. |
+| Error assertions | `assert.Error(t, err)` or `assert.Equal(t, expectedErr, err)` |
