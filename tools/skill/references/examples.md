@@ -338,7 +338,9 @@ func (u *userRepo) Delete(ctx context.Context, id int64) error {
 }
 ```
 
-## Entity
+## Entity（充血模型）
+
+Entity 采用充血模型，包含数据字段和业务逻辑方法：
 
 ```go
 // internal/model/entity/user_entity/user.go

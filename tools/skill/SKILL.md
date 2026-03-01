@@ -20,7 +20,7 @@ internal/
   controller/                # Thin layer: validate + forward to service
     user_ctr/user.go
   model/
-    entity/                  # GORM entities
+    entity/                  # GORM entities（充血模型，含业务逻辑方法）
       user_entity/user.go
   repository/                # Data access (GORM queries)
     user_repo/user.go
@@ -88,6 +88,36 @@ func Router(ctx context.Context, root *mux.Router) error {
 ```
 
 Nested middleware via `muxutils.BindTree` for complex route hierarchies.
+
+### Entity（充血模型）
+
+Entity 采用充血模型（Rich Domain Model），不仅包含数据字段，还封装与该实体相关的业务逻辑方法（如校验、状态判断等），避免将所有逻辑堆积在 Service 层。
+
+```go
+// model/entity/user_entity/user.go
+type User struct {
+    ID             int64  `gorm:"column:id;type:bigint(20);not null;primary_key"`
+    Username       string `gorm:"column:username;type:varchar(255);index:username,unique;not null"`
+    HashedPassword string `gorm:"column:hashed_password;type:varchar(255);not null"`
+    Status         int    `gorm:"column:status;type:int(11);not null"`
+    Createtime     int64  `gorm:"column:createtime;type:bigint(20)"`
+    Updatetime     int64  `gorm:"column:updatetime;type:bigint(20)"`
+}
+
+// 实体方法：封装与 User 相关的业务逻辑
+func (u *User) Check(ctx context.Context) error {
+    if u == nil {
+        return i18n.NewError(ctx, code.UserNotFound)
+    }
+    if u.Status != consts.ACTIVE {
+        return i18n.NewError(ctx, code.UserIsBanned)
+    }
+    return nil
+}
+```
+
+适合放在 Entity 中的逻辑：存在性校验、状态判断、字段格式化、简单的业务规则。
+不适合放在 Entity 中的逻辑：跨实体协作、依赖外部服务（如调用 Repository 或第三方 API）。
 
 ### Service Pattern
 
