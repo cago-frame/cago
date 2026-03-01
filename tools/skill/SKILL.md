@@ -373,6 +373,15 @@ func TestUserCreate(t *testing.T) {
 - Testing: GoConvey + testify + go.uber.org/mock + go-sqlmock + miniredis
 - Linting: golangci-lint v2 (`make lint`)
 - Mock generation: `//go:generate mockgen -source file.go -destination mock/file.go`
+- **Common constants**: Use `github.com/cago-frame/cago/pkg/consts` for universal constants (status, boolean flags, etc.) that are shared across projects. Project-specific constants should go in `internal/pkg/` instead.
+
+```go
+import "github.com/cago-frame/cago/pkg/consts"
+
+// Status constants: consts.UNKNOWN(0), consts.ACTIVE(1), consts.DELETE(2), consts.AUDIT(3), consts.BAN(4)
+// Boolean constants: consts.YES(1), consts.NO(2)
+if user.Status != consts.ACTIVE { ... }
+```
 
 ## References
 
