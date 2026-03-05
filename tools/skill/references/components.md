@@ -133,10 +133,39 @@ trace:
 ### Access Config Values
 
 ```go
-cfg.Scan(ctx, "db", &dbConfig)     // Scan into struct
-cfg.Key("http.address").String()   // Dot notation access
-cfg.Debug                          // bool
-cfg.Env                            // "DEV", "TEST", etc.
+cfg.Scan(ctx, "db", &dbConfig)         // Scan into struct
+cfg.String(ctx, "http.address")        // Dot notation, returns string
+cfg.Bool(ctx, "debug")                 // Returns bool
+cfg.Has(ctx, "key")                    // Check if key exists
+cfg.Watch(ctx, "key", callback)        // Watch config changes (callback receives source.Event)
+cfg.Debug                              // bool (direct field access)
+cfg.Env                                // Env type: "dev", "test", "pre", "prod"
+```
+
+### Etcd as Configuration Source
+
+Default config source is file (`configs/config.yaml`). Set `source: etcd` to switch to etcd. The config file still needs basic etcd connection info — the framework reads it from the file first, then switches to etcd for all other config keys.
+
+Key prefix rule: `{etcd.prefix}/{env}/{appName}` — e.g., if prefix is `/config`, env is `dev`, appName is `myapp`, the full key for database config is `/config/dev/myapp/db`.
+
+```yaml
+# configs/config.yaml — etcd config source
+source: etcd
+env: dev
+etcd:
+  endpoints:
+    - 127.0.0.1:2379
+  prefix: /config     # Final keys: /config/dev/appname/db, /config/dev/appname/redis, etc.
+```
+
+Each top-level config key (`db`, `redis`, `cache`, `logger`, `trace`, `broker`, etc.) is stored as a separate etcd key. If a key doesn't exist, it's auto-initialized with the default value and returns an error on first run — set the value in etcd and restart.
+
+Config values in etcd use the same serialization format (YAML by default). Example etcd value for key `/config/dev/myapp/db`:
+
+```yaml
+driver: mysql
+dsn: "user:password@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"
+prefix: "t_"
 ```
 
 ## Database

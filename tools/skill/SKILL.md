@@ -93,10 +93,9 @@ Nested middleware via `muxutils.BindTree` for complex route hierarchies.
 
 ### Entity (Rich Domain Model)
 
-Entities follow the Rich Domain Model pattern — they contain not only data fields but also encapsulate business logic methods related to the entity (e.g., validation, status checks), avoiding piling all logic into the Service layer.
+Entities contain data fields and business logic methods (validation, status checks), avoiding piling all logic into Service.
 
 ```go
-// model/entity/user_entity/user.go
 type User struct {
     ID             int64  `gorm:"column:id;type:bigint(20);not null;primary_key"`
     Username       string `gorm:"column:username;type:varchar(255);index:username,unique;not null"`
@@ -106,20 +105,15 @@ type User struct {
     Updatetime     int64  `gorm:"column:updatetime;type:bigint(20)"`
 }
 
-// Entity method: encapsulates business logic related to User
 func (u *User) Check(ctx context.Context) error {
-    if u == nil {
-        return i18n.NewError(ctx, code.UserNotFound)
-    }
-    if u.Status != consts.ACTIVE {
-        return i18n.NewError(ctx, code.UserIsBanned)
-    }
+    if u == nil { return i18n.NewError(ctx, code.UserNotFound) }
+    if u.Status != consts.ACTIVE { return i18n.NewError(ctx, code.UserIsBanned) }
     return nil
 }
 ```
 
 Suitable for Entity: existence checks, status validation, field formatting, simple business rules.
-Not suitable for Entity: cross-entity coordination, dependencies on external services (e.g., calling Repository or third-party APIs).
+Not suitable: cross-entity coordination, dependencies on external services.
 
 ### Service Pattern
 
@@ -169,19 +163,6 @@ err := db.Ctx(ctx).Transaction(func(tx *gorm.DB) error {
 // Publish messages after transaction commits
 ```
 
-### Redis & Cache
-
-```go
-redis.Ctx(ctx).Set("key", "value", time.Hour)   // Context-aware Redis
-redis.Nil(err)                                    // Check key not found
-
-cache.Ctx(ctx).GetOrSet("key", func() (interface{}, error) {  // Cache-aside
-    return db.Ctx(ctx).First(&entity).Error
-}, cache.WithDepend(keyDep), cache.Expiration(time.Hour)).Scan(&result)
-
-keyDep.InvalidKey(ctx)  // Invalidate dependency, all associated caches auto-refresh
-```
-
 ### Error Codes (i18n)
 
 ```go
@@ -193,130 +174,68 @@ var zhCN = map[int]string{ UserNotFound: "用户不存在" }
 return i18n.NewError(ctx, code.UserNotFound)
 return i18n.NewInternalError(ctx, code.ServerError)       // 500
 return i18n.NewErrorWithStatus(ctx, http.StatusNotFound, code.NotFound) // custom status
+return i18n.NewForbiddenError(ctx, code.UserNotPermission)             // 403
 ```
 
 ### Goroutines
 
 Always use `gogo.Go(ctx, func(ctx context.Context) error { ... })` for async work.
 
-### gRPC Server
+### Configuration Source
 
-```go
-import grpcServer "github.com/cago-frame/cago/server/grpc"
+Default: read from `configs/config.yaml`. Set `source: etcd` to use etcd as config center.
 
-// Register gRPC service (RegistryCancel, can stop the app)
-grpcServer.GRPC(func(ctx context.Context, s *grpc.Server) error {
-    pb.RegisterUserServiceServer(s, &userServiceImpl{})
-    return nil
-})
+When using etcd, the config file still needs basic etcd connection info. The framework reads etcd config from the file first, then switches to etcd as the source. etcd key prefix rule: `{etcd.prefix}/{env}/{appName}`.
 
-// With custom interceptors
-grpcServer.GRPC(registerServices,
-    grpc.ChainUnaryInterceptor(authInterceptor, logInterceptor),
-)
+```yaml
+# configs/config.yaml (etcd config source)
+source: etcd
+env: dev
+etcd:
+  endpoints:
+    - 127.0.0.1:2379
+  prefix: /config     # Final key: /config/dev/appname/db, /config/dev/appname/redis, etc.
 ```
 
-Config key: `grpc.address` (default `127.0.0.1:9090`). Auto-integrates OpenTelemetry tracing and metrics when `component.Core()` is registered.
+Each top-level config key (db, redis, cache, etc.) is stored as a separate etcd key. If a key doesn't exist in etcd, it's auto-initialized with the default value and returns an error on first run — set the value in etcd and restart.
+
+Config API:
+
+```go
+cfg.Scan(ctx, "db", &dbConfig)         // Scan into struct
+cfg.String(ctx, "http.address")        // Dot notation, returns string
+cfg.Bool(ctx, "debug")                 // Returns bool
+cfg.Has(ctx, "key")                    // Check existence
+cfg.Watch(ctx, "key", callback)        // Watch changes
+cfg.Env                                // "dev", "test", "pre", "prod"
+cfg.Debug                              // bool
+```
 
 ## TDD Development Workflow (Recommended)
 
-When developing with Cago, follow TDD (Test-Driven Development) to ensure code quality and design clarity:
-
-### Workflow
-
 1. **Write API definition** — Define request/response structs in `internal/api/`
-2. **Write tests first** — Create test file in controller directory, write test cases covering expected behavior (success + error scenarios)
+2. **Write tests first** — Create test file in controller directory, write test cases (success + error scenarios)
 3. **Run tests → verify they fail** — `go test -v -run TestXxx ./internal/controller/xxx_ctr/...`
 4. **Implement code** — Write controller → service → repository layer code to make tests pass
 5. **Run tests → verify they pass** — All test cases should be green
 6. **Refactor** — Clean up code while keeping tests passing, then run `make lint`
 
-### TDD Step-by-Step Example
-
-**Step 1: Define API**
-
-```go
-// internal/api/user/user.go
-type CreateUserRequest struct {
-    mux.Meta `path:"/user" method:"POST"`
-    Username string `form:"username" binding:"required"`
-}
-type CreateUserResponse struct {
-    ID int64 `json:"id"`
-}
-```
-
-**Step 2: Write test first (tests will fail — service/repo not yet implemented)**
-
-```go
-// internal/controller/user_ctr/user_test.go
-func TestUserCreate(t *testing.T) {
-    ctx, mockUserRepo, testMux := setupUserTest(t)
-
-    convey.Convey("创建用户", t, func() {
-        convey.Convey("创建成功", func() {
-            mockUserRepo.EXPECT().FindByUsername(gomock.Any(), "newuser").Return(nil, nil)
-            mockUserRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
-            resp := &api.CreateUserResponse{}
-            err := testMux.Do(ctx, &api.CreateUserRequest{Username: "newuser"}, resp)
-            assert.NoError(t, err)
-            assert.True(t, resp.ID > 0)
-        })
-        convey.Convey("用户名已存在", func() {
-            mockUserRepo.EXPECT().FindByUsername(gomock.Any(), "existuser").Return(&user_entity.User{ID: 1}, nil)
-            resp := &api.CreateUserResponse{}
-            err := testMux.Do(ctx, &api.CreateUserRequest{Username: "existuser"}, resp)
-            assert.Error(t, err)
-        })
-    })
-}
-```
-
-**Step 3: Run tests → RED (fail)**
-
-```bash
-go test -v -run TestUserCreate ./internal/controller/user_ctr/...
-```
-
-**Step 4: Implement controller, service, repository to make tests pass**
-
-**Step 5: Run tests → GREEN (pass)**
-
-**Step 6: Refactor + lint**
-
-```bash
-go test -v -run TestUserCreate ./internal/controller/user_ctr/...
-make lint
-```
-
 ### Key Principles
 
 - **Tests define behavior** — Write tests based on requirements before writing implementation
-- **Mock external dependencies** — Use `go.uber.org/mock` for repository interfaces, making tests fast and isolated
-- **Cover edge cases** — Each `Convey` block represents a scenario (success, validation error, not found, duplicate, etc.)
-- **Small iterations** — Implement one feature at a time: write test → implement → pass → next feature
+- **Mock external dependencies** — Use `go.uber.org/mock` for repository interfaces
+- **Cover edge cases** — Each `Convey` block represents a scenario (success, validation error, not found, etc.)
+- **Small iterations** — One feature at a time: write test → implement → pass → next feature
 
 ## Unit Testing
 
-Test files are placed in the corresponding controller directory, one test file per module:
-
-```
-internal/controller/
-  user_ctr/
-    user.go
-    user_test.go       # User module tests
-  example_ctr/
-    example.go
-    example_test.go    # Example module tests
-```
-
 ### Test Setup Pattern
 
-Each test file has a `setupXxxTest` function that initializes dependencies, mock, and routes:
+Each test file has a `setupXxxTest` function that initializes mock dependencies and registers routes:
 
 ```go
 func setupUserTest(t *testing.T) (context.Context, *mock_user_repo.MockUserRepo, *muxtest.TestMux) {
-    testutils.Cache(t)
+    testutils.Cache(t)                                    // In-memory cache
     mockCtrl := gomock.NewController(t)
     t.Cleanup(func() { mockCtrl.Finish() })
 
@@ -324,7 +243,6 @@ func setupUserTest(t *testing.T) (context.Context, *mock_user_repo.MockUserRepo,
     mockUserRepo := mock_user_repo.NewMockUserRepo(mockCtrl)
     user_repo.RegisterUser(mockUserRepo)
 
-    // Register only the routes needed for this module
     testMux := muxtest.NewTestMux()
     r := testMux.Group("/api/v1")
     ctr := NewUser()
@@ -334,18 +252,34 @@ func setupUserTest(t *testing.T) (context.Context, *mock_user_repo.MockUserRepo,
 }
 ```
 
-Key points:
-- Use `broker.SetBroker(event_bus.NewEvBusBroker())` if broker is needed
-- Register only the routes relevant to the module being tested
+### TestMux Usage
+
+`muxtest.TestMux` embeds `muxclient.Client` — use `Do(ctx, req, resp)` to test handlers:
+
+```go
+resp := &api.CreateResponse{}
+err := testMux.Do(ctx, &api.CreateRequest{Username: "newuser"}, resp)
+assert.NoError(t, err)
+```
+
+Options: `muxclient.WithHeader(h)` (set headers), `muxclient.WithPath(p)` (override path), `muxclient.WithResponse(&httpResp)` (capture raw response).
+
+### Test Utilities
+
+```go
+testutils.Cache(t)                           // In-memory cache (memory.NewMemoryCache)
+testutils.Redis(t)                           // Miniredis
+testutils.IAM(t, database, opts...)          // IAM
+broker.SetBroker(event_bus.NewEvBusBroker()) // In-memory broker
+```
 
 ### Test Structure
 
-Use GoConvey for BDD-style nested tests, one `TestXxx` per feature:
+Use GoConvey for BDD-style nested tests:
 
 ```go
 func TestUserCreate(t *testing.T) {
     ctx, mockUserRepo, testMux := setupUserTest(t)
-
     convey.Convey("创建用户", t, func() {
         convey.Convey("创建成功", func() {
             mockUserRepo.EXPECT().FindByUsername(gomock.Any(), "newuser").Return(nil, nil)
@@ -358,8 +292,7 @@ func TestUserCreate(t *testing.T) {
             mockUserRepo.EXPECT().FindByUsername(gomock.Any(), "existuser").Return(&user_entity.User{
                 ID: 1, Username: "existuser", Status: consts.ACTIVE,
             }, nil)
-            resp := &api.CreateResponse{}
-            err := testMux.Do(ctx, &api.CreateRequest{Username: "existuser"}, resp)
+            err := testMux.Do(ctx, &api.CreateRequest{Username: "existuser"}, &api.CreateResponse{})
             assert.Error(t, err)
         })
     })
@@ -373,19 +306,17 @@ func TestUserCreate(t *testing.T) {
 - Testing: GoConvey + testify + go.uber.org/mock + go-sqlmock + miniredis
 - Linting: golangci-lint v2 (`make lint`)
 - Mock generation: `//go:generate mockgen -source file.go -destination mock/file.go`
-- **Common constants**: Use `github.com/cago-frame/cago/pkg/consts` for universal constants (status, boolean flags, etc.) that are shared across projects. Project-specific constants should go in `internal/pkg/` instead.
+- **Common constants**: Use `github.com/cago-frame/cago/pkg/consts` for universal constants:
 
 ```go
 import "github.com/cago-frame/cago/pkg/consts"
-
-// Status constants: consts.UNKNOWN(0), consts.ACTIVE(1), consts.DELETE(2), consts.AUDIT(3), consts.BAN(4)
-// Boolean constants: consts.YES(1), consts.NO(2)
-if user.Status != consts.ACTIVE { ... }
+// Status: consts.UNKNOWN(0), consts.ACTIVE(1), consts.DELETE(2), consts.AUDIT(3), consts.BAN(4)
+// Boolean: consts.YES(1), consts.NO(2)
 ```
 
 ## References
 
 - **Complete examples** (entry point, all layers, cron, queue, migration, unit testing, advanced patterns):
   See [references/examples.md](references/examples.md)
-- **Components & configuration** (component system, config YAML, database, etcd, redis, cache, logger, trace, metrics, broker, gogo):
+- **Components & configuration** (component system, config YAML, database, etcd, redis, cache, logger, trace, metrics, broker, gRPC, gogo):
   See [references/components.md](references/components.md)

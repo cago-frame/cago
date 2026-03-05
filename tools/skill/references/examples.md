@@ -1151,6 +1151,38 @@ func TestExamplePing(t *testing.T) {
 }
 ```
 
+### TestMux Options
+
+`muxtest.TestMux` embeds `muxclient.Client`. Use `Do(ctx, req, resp, opts...)` for testing:
+
+```go
+// Basic usage
+err := testMux.Do(ctx, &api.CreateRequest{Username: "test"}, resp)
+
+// With custom headers (e.g., authentication)
+err := testMux.Do(ctx, req, resp, muxclient.WithHeader(http.Header{
+    "Authorization": []string{"Bearer token"},
+}))
+
+// Override path (useful for path params)
+err := testMux.Do(ctx, req, resp, muxclient.WithPath("/api/v1/user/123"))
+
+// Capture raw HTTP response
+var httpResp *http.Response
+err := testMux.Do(ctx, req, resp, muxclient.WithResponse(&httpResp))
+```
+
+### Test Utilities (testutils)
+
+```go
+import "github.com/cago-frame/cago/pkg/utils/testutils"
+
+testutils.Cache(t)                           // In-memory cache (once per test suite)
+testutils.Redis(t)                           // Miniredis (once per test suite)
+testutils.IAM(t, database, opts...)          // IAM component
+broker.SetBroker(event_bus.NewEvBusBroker()) // In-memory broker
+```
+
 ### Testing Key Points
 
 | Item | Convention |
