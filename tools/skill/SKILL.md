@@ -181,158 +181,72 @@ return i18n.NewForbiddenError(ctx, code.UserNotPermission)             // 403
 
 Always use `gogo.Go(ctx, func(ctx context.Context) error { ... })` for async work.
 
-### Configuration Source
+### Configuration
 
-Default: read from `configs/config.yaml`. Set `source: etcd` to use etcd as config center.
+Default: read from `configs/config.yaml`. Supports etcd as config source (`source: etcd`).
 
-When using etcd, the config file still needs basic etcd connection info. The framework reads etcd config from the file first, then switches to etcd as the source. etcd key prefix rule: `{etcd.prefix}/{env}/{appName}`.
+Config API: `cfg.Scan(ctx, "db", &dbConfig)`, `cfg.String(ctx, "http.address")`, `cfg.Bool(ctx, "debug")`, `cfg.Has(ctx, "key")`, `cfg.Watch(ctx, "key", callback)`, `cfg.Env`, `cfg.Debug`.
 
-```yaml
-# configs/config.yaml (etcd config source)
-source: etcd
-env: dev
-etcd:
-  endpoints:
-    - 127.0.0.1:2379
-  prefix: /config     # Final key: /config/dev/appname/db, /config/dev/appname/redis, etc.
-```
+For complete config YAML examples, etcd config source setup, and all component configurations, see [references/components.md](references/components.md).
 
-Each top-level config key (db, redis, cache, etc.) is stored as a separate etcd key. If a key doesn't exist in etcd, it's auto-initialized with the default value and returns an error on first run — set the value in etcd and restart.
+## Testing
 
-Config API:
+### BDD/TDD Workflow (Recommended)
 
-```go
-cfg.Scan(ctx, "db", &dbConfig)         // Scan into struct
-cfg.String(ctx, "http.address")        // Dot notation, returns string
-cfg.Bool(ctx, "debug")                 // Returns bool
-cfg.Has(ctx, "key")                    // Check existence
-cfg.Watch(ctx, "key", callback)        // Watch changes
-cfg.Env                                // "dev", "test", "pre", "prod"
-cfg.Debug                              // bool
-```
+**Ask the user first** — Before starting implementation, ask whether to use BDD/TDD. Recommended but not mandatory.
 
-## BDD/TDD Development Workflow (Recommended)
+**Well suited for:** API endpoints, business logic with multiple scenarios, auth/state transitions, bug fixes (test-first to prevent regression).
+**Less suited for:** Pure utility functions, infrastructure changes, migrations, simple CRUD without special logic.
 
-### When to Use BDD/TDD
-
-**Ask the user first** — Before starting implementation, ask the user whether they want to use BDD/TDD workflow. It's the recommended approach but not mandatory.
-
-**Well suited for:**
-- New API endpoints (Controller/Service layer) with clear behavior expectations
-- Business logic with multiple scenarios (success, error, edge cases)
-- Features involving authentication, authorization, state transitions
-- **Bug fixes** — prioritize writing a test that reproduces the bug first, then fix it (test-first ensures the bug won't regress)
-- Any feature where requirements can be expressed as "Given...When...Then..."
-
-**Less suited for (suggest other test approaches):**
-- Pure utility functions — write regular unit tests after implementation
-- Infrastructure/config changes — manual verification may suffice
-- Database migrations — test via migration tool
-- Simple CRUD with no special logic — basic integration test after implementation
-
-### Bug Fix Workflow (Test-First)
-
-For bug fixes, prioritize reproducing the bug with a test before writing the fix:
-
-1. **Analyze the bug** — Understand the root cause and affected code path
-2. **Write a failing test** — Create a test case that reproduces the exact bug scenario
-3. **Run test → confirm it fails** — Verify the test correctly captures the bug
-4. **Fix the bug** — Modify the minimum code needed to fix the issue
-5. **Run test → confirm it passes** — The previously failing test should now pass
-6. **Run full test suite** — Ensure no regressions: `go test -v ./internal/controller/...`
-
-### BDD/TDD Steps
+**BDD/TDD Steps:**
 
 1. **Write API definition** — Define request/response structs in `internal/api/`
-2. **Design test scenarios** — From requirements, derive Convey nesting structure:
-   - Top-level `Convey`: feature name (e.g., "登录")
-   - Nested `Convey`: each scenario (e.g., "登录成功", "用户名不存在", "密码错误")
-   - Deeply nested `Convey`: sequential behavior (e.g., "退出后再访问接口失败")
-3. **Write tests first** — Create test file, implement setup function and test cases
+2. **Design test scenarios** — Derive Convey nesting: top-level = feature, nested = scenarios, deeply nested = sequential behavior
+3. **Write tests first** — Create test file with `setupXxxTest` function and test cases
 4. **Run tests → verify they fail** — `go test -v -run TestXxx ./internal/controller/xxx_ctr/...`
 5. **Implement code** — Write controller → service → repository to make tests pass
 6. **Run tests → verify they pass** — All test cases should be green
 7. **Refactor** — Clean up code while keeping tests passing, then run `make lint`
 
-### Key Principles
-
-- **Tests define behavior** — Write tests based on requirements before writing implementation
-- **Mock external dependencies** — Use `go.uber.org/mock` for repository interfaces
-- **Cover edge cases** — Each `Convey` block represents a scenario (success, validation error, not found, etc.)
-- **Small iterations** — One feature at a time: write test → implement → pass → next feature
-- **Helper functions** — Extract repeated test operations (e.g., login) into `t.Helper()` functions for reuse across tests
-
-## Unit Testing
+**Bug Fix Workflow:** Write failing test that reproduces the bug → fix the bug → verify test passes → run full suite.
 
 ### Test Setup Pattern
 
-Each test file has a `setupXxxTest` function that initializes mock dependencies and registers routes:
+Each test file has a `setupXxxTest` function that initializes mocks, registers repos, and sets up routes:
 
 ```go
 func setupUserTest(t *testing.T) (context.Context, *mock_user_repo.MockUserRepo, *muxtest.TestMux) {
     testutils.Cache(t)
     mockCtrl := gomock.NewController(t)
     t.Cleanup(func() { mockCtrl.Finish() })
-
     ctx := context.Background()
     mockUserRepo := mock_user_repo.NewMockUserRepo(mockCtrl)
     user_repo.RegisterUser(mockUserRepo)
-
-    // Initialize other components as needed (IAM, broker, etc.)
-    // e.g. iam.SetDefault(iam.New(user_repo.User()))
-    // e.g. broker.SetBroker(event_bus.NewEvBusBroker())
-
     testMux := muxtest.NewTestMux()
     r := testMux.Group("/api/v1")
     ctr := NewUser()
     r.Group("/").Bind(ctr.Create, ctr.List)
-    // Register middleware routes as needed
-    // e.g. r.Group("/", user_svc.User().Middleware(true)).Bind(ctr.CurrentUser)
-
     return ctx, mockUserRepo, testMux
 }
 ```
 
-### TestMux Usage
-
-`muxtest.TestMux` embeds `muxclient.Client` — use `Do(ctx, req, resp)` to test handlers:
+### TestMux & Test Utilities
 
 ```go
-resp := &api.CreateResponse{}
+// TestMux — use Do(ctx, req, resp, opts...) to test handlers
 err := testMux.Do(ctx, &api.CreateRequest{Username: "newuser"}, resp)
-assert.NoError(t, err)
-```
+// Options: muxclient.WithHeader(h), muxclient.WithPath(p), muxclient.WithResponse(&httpResp)
 
-Options: `muxclient.WithHeader(h)` (set headers), `muxclient.WithPath(p)` (override path), `muxclient.WithResponse(&httpResp)` (capture raw response).
-
-### Test Utilities
-
-```go
-testutils.Cache(t)                           // In-memory cache (memory.NewMemoryCache)
+// Test utilities
+testutils.Cache(t)                           // In-memory cache
 testutils.Redis(t)                           // Miniredis
-testutils.IAM(t, database, opts...)          // IAM
 broker.SetBroker(event_bus.NewEvBusBroker()) // In-memory broker
-```
-
-### Helper Functions
-
-Extract repeated test operations into helper functions with `t.Helper()`, so failures report the caller's line:
-
-```go
-func createUser(t *testing.T, ctx context.Context, testMux *muxtest.TestMux, mockUserRepo *mock_user_repo.MockUserRepo) *api.CreateResponse {
-    t.Helper()
-    mockUserRepo.EXPECT().FindByUsername(gomock.Any(), "newuser").Return(nil, nil)
-    mockUserRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
-    resp := &api.CreateResponse{}
-    err := testMux.Do(ctx, &api.CreateRequest{Username: "newuser", Password: "password123"}, resp)
-    assert.NoError(t, err)
-    return resp
-}
+iam.SetDefault(iam.New(user_repo.User()))    // IAM with mock repo
 ```
 
 ### Test Structure
 
-Use GoConvey for BDD-style nested tests. Nested `Convey` blocks can express sequential behavior:
+Use GoConvey for BDD-style nested tests. Extract repeated operations into `t.Helper()` functions:
 
 ```go
 func TestUserCreate(t *testing.T) {
@@ -354,28 +268,9 @@ func TestUserCreate(t *testing.T) {
         })
     })
 }
-
-// Deep nesting for sequential behavior verification
-func TestUserDelete(t *testing.T) {
-    ctx, mockUserRepo, testMux := setupUserTest(t)
-    convey.Convey("删除用户", t, func() {
-        convey.Convey("删除成功", func() {
-            mockUserRepo.EXPECT().Find(gomock.Any(), int64(1)).Return(&user_entity.User{ID: 1, Status: consts.ACTIVE}, nil)
-            mockUserRepo.EXPECT().Delete(gomock.Any(), int64(1)).Return(nil)
-            err := testMux.Do(ctx, &api.DeleteRequest{ID: 1}, &api.DeleteResponse{})
-            assert.NoError(t, err)
-
-            convey.Convey("删除后查询不到", func() {
-                mockUserRepo.EXPECT().Find(gomock.Any(), int64(1)).Return(nil, nil)
-                err := testMux.Do(ctx, &api.FindRequest{ID: 1}, &api.FindResponse{})
-                assert.Error(t, err)
-            })
-        })
-    })
-}
 ```
 
-For complete test examples with IAM authentication, middleware, and token refresh, see [references/examples.md](references/examples.md).
+For complete test examples (IAM auth, sequential behavior, cross-controller auth, broker, helper functions), see [references/examples.md](references/examples.md).
 
 ## Conventions
 
