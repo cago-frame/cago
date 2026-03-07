@@ -216,7 +216,7 @@ Each test file has a `setupXxxTest` function that initializes mocks, registers r
 
 ```go
 func setupUserTest(t *testing.T) (context.Context, *mock_user_repo.MockUserRepo, *muxtest.TestMux) {
-    testutils.Cache(t)
+    testutils.Cache()
     mockCtrl := gomock.NewController(t)
     t.Cleanup(func() { mockCtrl.Finish() })
     ctx := context.Background()
@@ -238,10 +238,14 @@ err := testMux.Do(ctx, &api.CreateRequest{Username: "newuser"}, resp)
 // Options: muxclient.WithHeader(h), muxclient.WithPath(p), muxclient.WithResponse(&httpResp)
 
 // Test utilities
-testutils.Cache(t)                           // In-memory cache
-testutils.Redis(t)                           // Miniredis
+testutils.Cache()                            // In-memory cache
+testutils.Redis()                            // Miniredis
+ctx, gormDB, mock := testutils.Database(t)   // sqlmock database via context (db.Ctx(ctx) uses mock)
 broker.SetBroker(event_bus.NewEvBusBroker()) // In-memory broker
 iam.SetDefault(iam.New(user_repo.User()))    // IAM with mock repo
+
+// Test cleanup helpers
+cron.SetDefault(mockCrontab)                 // Inject mock cron
 ```
 
 ### Test Structure

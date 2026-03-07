@@ -27,7 +27,7 @@ import (
 )
 
 func setupExampleTest(t *testing.T) (context.Context, *mock_user_repo.MockUserRepo, *muxtest.TestMux) {
-	testutils.Cache(t)
+	testutils.Cache()
 	mockCtrl := gomock.NewController(t)
 	t.Cleanup(func() { mockCtrl.Finish() })
 

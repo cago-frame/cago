@@ -12,12 +12,12 @@ import (
 )
 
 func RunTestEnv() {
-	cfg, err := configs.NewConfig("arb-bot", configs.WithSource(
+	cfg, err := configs.NewConfig("cago", configs.WithSource(
 		memory.NewSource(map[string]interface{}{
 			"logger": logger.Config{
 				Level:          "info",
 				DisableConsole: true,
-				LogFile:        logger.LogFileConfig{Enable: false, Filename: "robot.log"},
+				LogFile:        logger.LogFileConfig{Enable: false, Filename: "cago.log"},
 			},
 			"trace": trace.Config{
 				Type: "noop",

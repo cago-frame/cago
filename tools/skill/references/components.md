@@ -233,6 +233,29 @@ db.RegisterDriver(db.Driver("custom"), func(cfg *db.Config) gorm.Dialector {
 })
 ```
 
+### Testing
+
+通过 `testutils.Database(t)` 创建基于 sqlmock 的测试环境，mock 数据库通过 context 传递，不污染全局状态：
+
+```go
+// 使用 testutils 辅助函数（推荐），返回带 mock 数据库的 context
+ctx, gormDB, mock := testutils.Database(t)
+// 后续 db.Ctx(ctx) 自动使用 mock 实例
+
+// 手动方式：通过 db.WithContextDB 注入
+sqlDB, mock, _ := sqlmock.New()
+gormDB, _ := gorm.Open(mysql.New(mysql.Config{
+    SkipInitializeWithVersion: true,
+    Conn: sqlDB,
+}), &gorm.Config{})
+ctx := db.WithContextDB(context.Background(), gormDB)
+
+// 也可以通过 db.SetDefault 全局注入（影响全局状态，不推荐）
+db.SetDefault(gormDB)
+```
+
+注意：`db.WithContextDB` 是唯一支持通过 context 传递自定义实例的组件。Redis、Cache 等组件的 `Ctx(ctx)` 始终使用全局 `Default()` 实例，只能通过 `SetDefault` 全局注入。
+
 ## Redis
 
 ```go
@@ -728,3 +751,4 @@ gogo.Go(ctx, fn, gogo.WithIgnorePanic(true))
 - Panic recovery with logging
 - Graceful shutdown coordination via `gogo.Wait()` (framework waits up to 10s)
 - Context propagation
+

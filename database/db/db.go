@@ -165,9 +165,12 @@ func (d *DB) CloseHandle() {
 	}
 }
 
-// SetDefault 设置默认数据库
-func (d *DB) SetDefault(db *gorm.DB) {
-	d.defaultDb = db
+// SetDefault 设置默认数据库，用于测试注入
+func SetDefault(gormDB *gorm.DB) {
+	if defaultDB == nil {
+		defaultDB = &DB{dbs: make(map[string]*gorm.DB)}
+	}
+	defaultDB.defaultDb = gormDB
 }
 
 // Default 默认数据库

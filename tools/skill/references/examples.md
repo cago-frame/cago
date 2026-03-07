@@ -442,6 +442,8 @@ func Crontab(ctx context.Context, cfg *configs.Config) error {
 }
 ```
 
+Testing: 使用 `cron.SetDefault(c)` 注入 mock Crontab 实例进行测试。
+
 ## Message Queue
 
 ```go
@@ -1036,7 +1038,7 @@ import (
 )
 
 func setupUserTest(t *testing.T) (context.Context, *mock_user_repo.MockUserRepo, *muxtest.TestMux) {
-    testutils.Cache(t)
+    testutils.Cache()
     mockCtrl := gomock.NewController(t)
     t.Cleanup(func() { mockCtrl.Finish() })
 
@@ -1253,7 +1255,7 @@ import (
 )
 
 func setupExampleTest(t *testing.T) (context.Context, *mock_user_repo.MockUserRepo, *muxtest.TestMux) {
-    testutils.Cache(t)
+    testutils.Cache()
     mockCtrl := gomock.NewController(t)
     t.Cleanup(func() { mockCtrl.Finish() })
 
@@ -1356,8 +1358,9 @@ err := testMux.Do(ctx, req, resp, muxclient.WithResponse(&httpResp))
 ```go
 import "github.com/cago-frame/cago/pkg/utils/testutils"
 
-testutils.Cache(t)                           // In-memory cache (once per test suite)
-testutils.Redis(t)                           // Miniredis (once per test suite)
+testutils.Cache()                            // In-memory cache (once per test suite)
+testutils.Redis()                            // Miniredis (once per test suite)
+ctx, gormDB, mock := testutils.Database(t)   // sqlmock database via context
 iam.SetDefault(iam.New(user_repo.User()))    // IAM with mock repo
 broker.SetBroker(event_bus.NewEvBusBroker()) // In-memory broker
 ```

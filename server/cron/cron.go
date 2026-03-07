@@ -47,3 +47,8 @@ func (s *server) CloseHandle() {
 func Default() Crontab {
 	return defaultCrontab
 }
+
+// SetDefault 设置默认定时任务实例，用于测试注入
+func SetDefault(c Crontab) {
+	defaultCrontab = c
+}
