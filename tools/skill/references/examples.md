@@ -1015,18 +1015,24 @@ package user_ctr
 
 import (
     "context"
+    "net/http"
     "testing"
 
     api "yourapp/internal/api/user"
     "yourapp/internal/model/entity/user_entity"
     "yourapp/internal/repository/user_repo"
     mock_user_repo "yourapp/internal/repository/user_repo/mock"
+    "yourapp/internal/service/user_svc"
     "github.com/cago-frame/cago/pkg/consts"
+    "github.com/cago-frame/cago/pkg/iam"
+    "github.com/cago-frame/cago/pkg/iam/authn"
     "github.com/cago-frame/cago/pkg/utils/testutils"
+    "github.com/cago-frame/cago/server/mux/muxclient"
     "github.com/cago-frame/cago/server/mux/muxtest"
     "github.com/smartystreets/goconvey/convey"
     "github.com/stretchr/testify/assert"
     "go.uber.org/mock/gomock"
+    "golang.org/x/crypto/bcrypt"
 )
 
 func setupUserTest(t *testing.T) (context.Context, *mock_user_repo.MockUserRepo, *muxtest.TestMux) {
@@ -1038,85 +1044,211 @@ func setupUserTest(t *testing.T) (context.Context, *mock_user_repo.MockUserRepo,
     mockUserRepo := mock_user_repo.NewMockUserRepo(mockCtrl)
     user_repo.RegisterUser(mockUserRepo)
 
-    // Register only the routes needed for this controller module
+    // Re-initialize IAM each time to avoid onceDo cache holding stale mock references
+    iam.SetDefault(iam.New(user_repo.User()))
+
     testMux := muxtest.NewTestMux()
     r := testMux.Group("/api/v1")
     userCtr := NewUser()
-    r.Group("/").Bind(
-        userCtr.Create,
-        userCtr.List,
+    r.Group("/").Bind(userCtr.Register, userCtr.Login)
+    // Routes that require authentication middleware
+    r.Group("/", user_svc.User().Middleware(true)).Bind(
+        userCtr.CurrentUser, userCtr.Logout, userCtr.RefreshToken,
     )
 
     return ctx, mockUserRepo, testMux
 }
 ```
 
-### Test Examples — CRUD Module
+### Helper Functions (t.Helper)
+
+Extract repeated test operations into helper functions. Use `t.Helper()` so test failures report the caller's line number:
 
 ```go
-func TestUserCreate(t *testing.T) {
+// loginUser performs login and returns the response for use in subsequent tests
+func loginUser(t *testing.T, ctx context.Context, testMux *muxtest.TestMux, mockUserRepo *mock_user_repo.MockUserRepo) *api.LoginResponse {
+    t.Helper()
+    hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("qwe123"), bcrypt.DefaultCost)
+    mockUserRepo.EXPECT().GetUserByUsername(gomock.Any(), "test", gomock.Any()).Return(&authn.User{
+        ID: "1", Username: "test", HashedPassword: string(hashedPassword),
+    }, nil)
+    loginResp := &api.LoginResponse{}
+    var httpResp *http.Response
+    err := testMux.Do(ctx, &api.LoginRequest{
+        Username: "test",
+        Password: "qwe123",
+    }, loginResp, muxclient.WithResponse(&httpResp))
+    assert.NoError(t, err)
+    assert.Equal(t, http.StatusOK, httpResp.StatusCode)
+    assert.NotEmpty(t, loginResp.AccessToken)
+    return loginResp
+}
+```
+
+### Test Examples — Login/Register
+
+```go
+func TestUserLogin(t *testing.T) {
     ctx, mockUserRepo, testMux := setupUserTest(t)
 
-    convey.Convey("创建用户", t, func() {
-        convey.Convey("创建成功", func() {
+    convey.Convey("登录", t, func() {
+        convey.Convey("登录成功", func() {
+            loginResp := loginUser(t, ctx, testMux, mockUserRepo)
+            assert.NotEmpty(t, loginResp.RefreshToken)
+        })
+        convey.Convey("用户名不存在", func() {
+            mockUserRepo.EXPECT().GetUserByUsername(gomock.Any(), "notexist", gomock.Any()).Return(nil, nil)
+            err := testMux.Do(ctx, &api.LoginRequest{
+                Username: "notexist",
+                Password: "qwe123",
+            }, &api.LoginResponse{})
+            assert.Equal(t, authn.UsernameNotFound, err)
+        })
+        convey.Convey("密码错误", func() {
+            hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("qwe123"), bcrypt.DefaultCost)
+            mockUserRepo.EXPECT().GetUserByUsername(gomock.Any(), "test", gomock.Any()).Return(&authn.User{
+                ID: "1", Username: "test", HashedPassword: string(hashedPassword),
+            }, nil)
+            err := testMux.Do(ctx, &api.LoginRequest{
+                Username: "test",
+                Password: "wrongpassword",
+            }, &api.LoginResponse{})
+            assert.Equal(t, authn.PasswordWrong, err)
+        })
+    })
+}
+
+func TestUserRegister(t *testing.T) {
+    ctx, mockUserRepo, testMux := setupUserTest(t)
+
+    convey.Convey("注册", t, func() {
+        convey.Convey("注册成功", func() {
             mockUserRepo.EXPECT().FindByUsername(gomock.Any(), "newuser").Return(nil, nil)
-            mockUserRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
-            resp := &api.CreateResponse{}
-            err := testMux.Do(ctx, &api.CreateRequest{
+            mockUserRepo.EXPECT().Register(gomock.Any(), gomock.Any()).Return(&authn.RegisterResponse{
+                UserID: "2",
+            }, nil)
+            resp := &api.RegisterResponse{}
+            err := testMux.Do(ctx, &api.RegisterRequest{
                 Username: "newuser",
                 Password: "password123",
             }, resp)
             assert.NoError(t, err)
-            assert.NotZero(t, resp.ID)
         })
         convey.Convey("用户名已存在", func() {
             mockUserRepo.EXPECT().FindByUsername(gomock.Any(), "existuser").Return(&user_entity.User{
                 ID: 1, Username: "existuser", Status: consts.ACTIVE,
             }, nil)
-            resp := &api.CreateResponse{}
-            err := testMux.Do(ctx, &api.CreateRequest{
+            err := testMux.Do(ctx, &api.RegisterRequest{
                 Username: "existuser",
                 Password: "password123",
-            }, resp)
-            assert.Error(t, err)
-        })
-    })
-}
-
-func TestUserFind(t *testing.T) {
-    ctx, mockUserRepo, testMux := setupUserTest(t)
-
-    convey.Convey("查询用户", t, func() {
-        convey.Convey("查询成功", func() {
-            mockUserRepo.EXPECT().Find(gomock.Any(), int64(1)).Return(&user_entity.User{
-                ID: 1, Username: "test", Status: consts.ACTIVE,
-            }, nil)
-            resp := &api.FindResponse{}
-            err := testMux.Do(ctx, &api.FindRequest{ID: 1}, resp)
-            assert.NoError(t, err)
-            assert.Equal(t, "test", resp.Username)
-        })
-        convey.Convey("用户不存在", func() {
-            mockUserRepo.EXPECT().Find(gomock.Any(), int64(999)).Return(nil, nil)
-            resp := &api.FindResponse{}
-            err := testMux.Do(ctx, &api.FindRequest{ID: 999}, resp)
+            }, &api.RegisterResponse{})
             assert.Error(t, err)
         })
     })
 }
 ```
 
-### Test Example — Module with Broker
+### Test Examples — Authentication & Sequential Behavior
 
-When testing modules that depend on the broker (message queue), set up an in-memory broker:
+Tests with authentication middleware, and deep nesting for verifying sequential behavior:
+
+```go
+func TestUserCurrentUser(t *testing.T) {
+    ctx, mockUserRepo, testMux := setupUserTest(t)
+
+    convey.Convey("当前用户", t, func() {
+        convey.Convey("未登录访问", func() {
+            err := testMux.Do(ctx, &api.CurrentUserRequest{}, &api.CurrentUserResponse{})
+            assert.Equal(t, authn.ErrUnauthorized, err)
+        })
+        convey.Convey("登录后获取当前用户", func() {
+            loginResp := loginUser(t, ctx, testMux, mockUserRepo)
+            mockUserRepo.EXPECT().Find(gomock.Any(), int64(1)).Return(&user_entity.User{
+                ID: 1, Username: "test", Status: consts.ACTIVE,
+            }, nil)
+            resp := &api.CurrentUserResponse{}
+            err := testMux.Do(ctx, &api.CurrentUserRequest{}, resp, muxclient.WithHeader(http.Header{
+                "Cookie": []string{"access_token=" + loginResp.AccessToken},
+            }))
+            assert.NoError(t, err)
+            assert.Equal(t, "test", resp.Username)
+        })
+    })
+}
+
+func TestUserLogout(t *testing.T) {
+    ctx, mockUserRepo, testMux := setupUserTest(t)
+
+    convey.Convey("退出登录", t, func() {
+        convey.Convey("未登录退出", func() {
+            err := testMux.Do(ctx, &api.LogoutRequest{}, &api.LogoutResponse{})
+            assert.Equal(t, authn.ErrUnauthorized, err)
+        })
+        convey.Convey("登录后退出", func() {
+            loginResp := loginUser(t, ctx, testMux, mockUserRepo)
+            mockUserRepo.EXPECT().Find(gomock.Any(), int64(1)).Return(&user_entity.User{
+                ID: 1, Username: "test", Status: consts.ACTIVE,
+            }, nil)
+            err := testMux.Do(ctx, &api.LogoutRequest{}, &api.LogoutResponse{}, muxclient.WithHeader(http.Header{
+                "Cookie": []string{"access_token=" + loginResp.AccessToken},
+            }))
+            assert.NoError(t, err)
+
+            // Deep nesting: verify behavior after logout
+            convey.Convey("退出后再访问接口失败", func() {
+                err := testMux.Do(ctx, &api.CurrentUserRequest{}, &api.CurrentUserResponse{}, muxclient.WithHeader(http.Header{
+                    "Cookie": []string{"access_token=" + loginResp.AccessToken},
+                }))
+                assert.Equal(t, authn.ErrUnauthorized, err)
+            })
+        })
+    })
+}
+
+func TestUserRefreshToken(t *testing.T) {
+    ctx, mockUserRepo, testMux := setupUserTest(t)
+
+    convey.Convey("刷新token", t, func() {
+        convey.Convey("刷新成功", func() {
+            loginResp := loginUser(t, ctx, testMux, mockUserRepo)
+            mockUserRepo.EXPECT().Find(gomock.Any(), int64(1)).Return(&user_entity.User{
+                ID: 1, Username: "test", Status: consts.ACTIVE,
+            }, nil)
+            resp := &api.RefreshTokenResponse{}
+            err := testMux.Do(ctx, &api.RefreshTokenRequest{
+                RefreshToken: loginResp.RefreshToken,
+            }, resp, muxclient.WithHeader(http.Header{
+                "Cookie": []string{"access_token=" + loginResp.AccessToken},
+            }))
+            assert.NoError(t, err)
+            assert.NotEmpty(t, resp.AccessToken)
+
+            // Deep nesting: verify old token is invalidated after refresh
+            convey.Convey("使用老的token访问失败", func() {
+                err := testMux.Do(ctx, &api.CurrentUserRequest{}, &api.CurrentUserResponse{}, muxclient.WithHeader(http.Header{
+                    "Cookie": []string{"access_token=" + loginResp.AccessToken},
+                }))
+                assert.Equal(t, authn.ErrUnauthorized, err)
+            })
+        })
+    })
+}
+```
+
+### Test Example — Module with Broker & Cross-Controller Auth
+
+When testing modules that depend on broker or require authentication from another controller:
 
 ```go
 // internal/controller/example_ctr/example_test.go
 package example_ctr
 
 import (
+    userapi "yourapp/internal/api/user"
+    "yourapp/internal/controller/user_ctr"
     "github.com/cago-frame/cago/pkg/broker"
     "github.com/cago-frame/cago/pkg/broker/event_bus"
+    "github.com/cago-frame/cago/pkg/iam"
     // ... other imports
 )
 
@@ -1129,14 +1261,39 @@ func setupExampleTest(t *testing.T) (context.Context, *mock_user_repo.MockUserRe
     mockUserRepo := mock_user_repo.NewMockUserRepo(mockCtrl)
     user_repo.RegisterUser(mockUserRepo)
 
-    broker.SetBroker(event_bus.NewEvBusBroker())  // In-memory broker for testing
+    iam.SetDefault(iam.New(user_repo.User()))
+    broker.SetBroker(event_bus.NewEvBusBroker())
 
     testMux := muxtest.NewTestMux()
     r := testMux.Group("/api/v1")
+
+    // Register login route from user controller for auth tests
+    userCtr := user_ctr.NewUser()
+    r.Group("/").Bind(userCtr.Login)
+
     exampleCtr := NewExample()
     r.Group("/").Bind(exampleCtr.Ping)
+    // Routes with auth + audit middleware
+    r.Group("/",
+        user_svc.User().Middleware(true),
+        user_svc.User().AuditMiddleware("example")).Bind(
+        exampleCtr.Audit,
+    )
 
     return ctx, mockUserRepo, testMux
+}
+
+// loginUser helper (same pattern as user_ctr, reuse in each test package)
+func loginUser(t *testing.T, ctx context.Context, testMux *muxtest.TestMux, mockUserRepo *mock_user_repo.MockUserRepo) *userapi.LoginResponse {
+    t.Helper()
+    hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("qwe123"), bcrypt.DefaultCost)
+    mockUserRepo.EXPECT().GetUserByUsername(gomock.Any(), "test", gomock.Any()).Return(&authn.User{
+        ID: "1", Username: "test", HashedPassword: string(hashedPassword),
+    }, nil)
+    loginResp := &userapi.LoginResponse{}
+    err := testMux.Do(ctx, &userapi.LoginRequest{Username: "test", Password: "qwe123"}, loginResp)
+    assert.NoError(t, err)
+    return loginResp
 }
 
 func TestExamplePing(t *testing.T) {
@@ -1149,6 +1306,28 @@ func TestExamplePing(t *testing.T) {
         assert.NotEmpty(t, resp.Pong)
     })
 }
+
+func TestExampleAudit(t *testing.T) {
+    ctx, mockUserRepo, testMux := setupExampleTest(t)
+
+    convey.Convey("审计操作", t, func() {
+        convey.Convey("未登录访问审计接口", func() {
+            err := testMux.Do(ctx, &api.AuditRequest{}, &api.AuditResponse{})
+            assert.Equal(t, authn.ErrUnauthorized, err)
+        })
+        convey.Convey("登录后访问审计接口", func() {
+            loginResp := loginUser(t, ctx, testMux, mockUserRepo)
+            mockUserRepo.EXPECT().Find(gomock.Any(), int64(1)).Return(&user_entity.User{
+                ID: 1, Username: "test", Status: consts.ACTIVE,
+            }, nil)
+            resp := &api.AuditResponse{}
+            err := testMux.Do(ctx, &api.AuditRequest{}, resp, muxclient.WithHeader(http.Header{
+                "Cookie": []string{"access_token=" + loginResp.AccessToken},
+            }))
+            assert.NoError(t, err)
+        })
+    })
+}
 ```
 
 ### TestMux Options
@@ -1159,9 +1338,9 @@ func TestExamplePing(t *testing.T) {
 // Basic usage
 err := testMux.Do(ctx, &api.CreateRequest{Username: "test"}, resp)
 
-// With custom headers (e.g., authentication)
+// With cookie-based auth (common pattern)
 err := testMux.Do(ctx, req, resp, muxclient.WithHeader(http.Header{
-    "Authorization": []string{"Bearer token"},
+    "Cookie": []string{"access_token=" + loginResp.AccessToken},
 }))
 
 // Override path (useful for path params)
@@ -1179,7 +1358,7 @@ import "github.com/cago-frame/cago/pkg/utils/testutils"
 
 testutils.Cache(t)                           // In-memory cache (once per test suite)
 testutils.Redis(t)                           // Miniredis (once per test suite)
-testutils.IAM(t, database, opts...)          // IAM component
+iam.SetDefault(iam.New(user_repo.User()))    // IAM with mock repo
 broker.SetBroker(event_bus.NewEvBusBroker()) // In-memory broker
 ```
 
@@ -1188,8 +1367,11 @@ broker.SetBroker(event_bus.NewEvBusBroker()) // In-memory broker
 | Item | Convention |
 |------|-----------|
 | Test file location | `internal/controller/<module>_ctr/<module>_test.go` |
+| IAM initialization | `iam.SetDefault(iam.New(user_repo.User()))` — re-init each time to avoid stale mock refs |
 | Broker for tests | `broker.SetBroker(event_bus.NewEvBusBroker())` (in-memory) |
+| Helper functions | `loginUser` etc. with `t.Helper()` — reuse login/setup logic across tests |
 | Mock generation | `//go:generate mockgen -source user.go -destination mock/user.go` |
 | Test framework | GoConvey (`convey.Convey`) + testify (`assert`) + gomock |
-| One TestXxx per feature | `TestUserCreate`, `TestUserFind`, `TestExamplePing`, etc. |
+| Deep nesting | Nested `Convey` for sequential behavior (logout→access fails, refresh→old token fails) |
+| One TestXxx per feature | `TestUserLogin`, `TestUserRegister`, `TestUserLogout`, etc. |
 | Error assertions | `assert.Error(t, err)` or `assert.Equal(t, expectedErr, err)` |
