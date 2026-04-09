@@ -567,27 +567,44 @@ func run(db *gorm.DB, fs ...func() *gormigrate.Migration) error {
 package migrations
 
 import (
-    "context"
-    "yourapp/internal/model/entity/user_entity"
-    "github.com/cago-frame/cago/database/db"
     "github.com/go-gormigrate/gormigrate/v2"
     "gorm.io/gorm"
 )
 
+// 注意：不要在 migration 中使用 AutoMigrate(&entity)，因为 entity 结构体会随时间变化，
+// 导致老的 migration 执行时带入新字段，与后续 migration 冲突。
+// 应使用确定性的 DDL 语句（Raw SQL 或 Migrator 的具体方法），确保每次执行结果一致。
 func T20230611() *gormigrate.Migration {
     return &gormigrate.Migration{
         ID: "20230611",
         Migrate: func(tx *gorm.DB) error {
-            ctx := db.WithContextDB(context.Background(), tx)
-            if err := tx.Migrator().AutoMigrate(&user_entity.User{}); err != nil {
-                return err
-            }
-            // Seed data using ctx with transaction
-            _ = ctx
-            return nil
+            // 使用确定性的 DDL 语句建表
+            return tx.Exec(`CREATE TABLE IF NOT EXISTS users (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(64) NOT NULL DEFAULT '',
+                email VARCHAR(128) NOT NULL DEFAULT '',
+                created_at DATETIME NOT NULL,
+                updated_at DATETIME NOT NULL,
+                deleted_at DATETIME NULL,
+                INDEX idx_email (email),
+                UNIQUE INDEX idx_username (username)
+            )`).Error
         },
         Rollback: func(tx *gorm.DB) error {
-            return nil
+            return tx.Exec(`DROP TABLE IF EXISTS users`).Error
+        },
+    }
+}
+
+// 后续 migration 示例：添加字段
+func T20250107() *gormigrate.Migration {
+    return &gormigrate.Migration{
+        ID: "20250107",
+        Migrate: func(tx *gorm.DB) error {
+            return tx.Exec(`ALTER TABLE users ADD COLUMN phone VARCHAR(32) NOT NULL DEFAULT '' AFTER email`).Error
+        },
+        Rollback: func(tx *gorm.DB) error {
+            return tx.Exec(`ALTER TABLE users DROP COLUMN phone`).Error
         },
     }
 }
