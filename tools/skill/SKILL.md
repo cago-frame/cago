@@ -179,7 +179,7 @@ return i18n.NewForbiddenError(ctx, code.UserNotPermission)             // 403
 
 ### Goroutines
 
-Always use `gogo.Go(ctx, func(ctx context.Context) error { ... })` for async work.
+Always use `gogo.Go(func() error { ... })` for async work. Do NOT pass request ctx into goroutines — use closures to capture the variables you need.
 
 ### Configuration
 

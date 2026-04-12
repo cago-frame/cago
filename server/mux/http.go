@@ -92,7 +92,7 @@ func (h *server) StartCancel(
 		Handler:           r.Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
-	_ = gogo.Go(ctx, func(ctx context.Context) error {
+	gogo.Go(func() error {
 		<-ctx.Done()
 		l.Info("http server closing...")
 		if err := srv.Shutdown(context.Background()); err != nil {
@@ -103,7 +103,7 @@ func (h *server) StartCancel(
 		return nil
 	})
 	// 启动http服务
-	_ = gogo.Go(ctx, func(ctx context.Context) error {
+	gogo.Go(func() error {
 		defer func() {
 			if cancel != nil {
 				cancel()

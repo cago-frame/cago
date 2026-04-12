@@ -109,7 +109,7 @@ func (s *server) StartCancel(
 	}
 
 	// 优雅关闭
-	_ = gogo.Go(ctx, func(ctx context.Context) error {
+	gogo.Go(func() error {
 		<-ctx.Done()
 		l.Info("grpc server closing...")
 		srv.GracefulStop()
@@ -118,7 +118,7 @@ func (s *server) StartCancel(
 	})
 
 	// 启动grpc服务
-	_ = gogo.Go(ctx, func(ctx context.Context) error {
+	gogo.Go(func() error {
 		defer func() {
 			if cancel != nil {
 				cancel()

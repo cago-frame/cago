@@ -726,29 +726,23 @@ broker:
 
 ## Goroutines
 
-Always use `gogo.Go` for spawning goroutines:
+Always use `gogo.Go` for spawning goroutines. Do NOT pass request-scoped ctx into goroutines — use closures to capture the variables you need:
 
 ```go
 import "github.com/cago-frame/cago/pkg/gogo"
 
-gogo.Go(ctx, func(ctx context.Context) error {
-    // async work, respond to ctx.Done() for graceful shutdown
-    select {
-    case <-ctx.Done():
-        return nil
-    default:
-        // do work
-    }
+gogo.Go(func() error {
+    // use closures to capture variables from outer scope
+    // do work
     return nil
 })
 
 // With options
-gogo.Go(ctx, fn, gogo.WithIgnorePanic(true))
+gogo.Go(fn, gogo.WithIgnorePanic())
 ```
 
 `gogo.Go` provides:
 
 - Panic recovery with logging
 - Graceful shutdown coordination via `gogo.Wait()` (framework waits up to 10s)
-- Context propagation
 

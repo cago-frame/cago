@@ -1,7 +1,6 @@
 package gogo
 
 import (
-	"context"
 	"sync"
 
 	"github.com/cago-frame/cago/pkg/logger"
@@ -13,7 +12,7 @@ var wg sync.WaitGroup
 // Go 框架处理协程
 // 可以处理协程的panic，但是不会返回错误
 // 也可以处理安全退出，当还有协程在运行时，gogo.Wait()会一直阻塞
-func Go(ctx context.Context, fun func(ctx context.Context) error, opts ...Option) error {
+func Go(fun func() error, opts ...Option) {
 	wg.Add(1)
 	options := &Options{}
 	for _, o := range opts {
@@ -32,9 +31,8 @@ func Go(ctx context.Context, fun func(ctx context.Context) error, opts ...Option
 				panic(err)
 			}
 		}()
-		_ = fun(ctx)
+		_ = fun()
 	}()
-	return nil
 }
 
 // Wait 等待所有协程结束
