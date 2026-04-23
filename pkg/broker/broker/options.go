@@ -13,6 +13,10 @@ type Options struct {
 
 type PublishOptions struct {
 	Context context.Context
+	// Values 用于承载 broker 专属数据。key 应使用未导出类型的零值
+	// 以避免跨包冲突；用户不应直接读写此 map，而应通过 broker 子包
+	// 提供的 typed helper（如 kafka.WithKey）。
+	Values map[any]any
 }
 
 type SubscribeOptions struct {

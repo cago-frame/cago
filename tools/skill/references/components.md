@@ -117,11 +117,14 @@ cache:
   db: 1
 
 broker:
-  type: "eventbus" # "eventbus" (in-memory) or "nsq"
+  type: "nsq"           # "nsq" (default, built-in), "event_bus" (in-memory), or "kafka"
   # nsq:
   #   addr: "127.0.0.1:4150"
   #   nsqlookupaddr:
   #     - "127.0.0.1:4161"
+  # event_bus and kafka require explicit import:
+  #   import _ "github.com/cago-frame/cago/pkg/broker/event_bus"
+  #   import _ "github.com/cago-frame/cago/pkg/broker/kafka"
 
 trace:
   endpoint: "localhost:4317"
@@ -701,17 +704,29 @@ broker.Default().Subscribe(ctx, "topic",
 
 Broker automatically propagates trace context in Message.Header. Trace is injected when publishing messages and extracted when subscribing, enabling cross-service distributed tracing.
 
-### NSQ vs EventBus
+### Backend Registration (Opt-in Model)
 
-| Feature | NSQ | EventBus |
-|---------|-----|----------|
-| Persistence | Yes | No (in-memory) |
-| Retry | Supported | Not supported |
-| Multi-instance consumption | Supported (group) | Not supported |
-| Use case | Production | Development/Testing |
+Broker backends follow the same opt-in model as `database/db` drivers:
+
+- **nsq** — default built-in, registered by `pkg/broker` automatically
+- **event_bus** — requires `import _ "github.com/cago-frame/cago/pkg/broker/event_bus"`
+- **kafka** — requires `import _ "github.com/cago-frame/cago/pkg/broker/kafka"`
+
+If the configured `broker.type` is not registered, `component.Broker()` returns an error indicating which package to import.
+
+### Backend Comparison
+
+| Feature | NSQ | EventBus | Kafka |
+|---------|-----|----------|-------|
+| Persistence | Yes | No (in-memory) | Yes |
+| Per-message retry | Supported | Not supported | Not supported (partition-level only) |
+| Requeue with delay | Supported | No-op | Not supported (returns `kafka.ErrRequeueUnsupported`) |
+| Multi-instance consumption | Supported (group) | Not supported | Supported (consumer group) |
+| Partition key | N/A | N/A | Via `kafka.WithKey()` option |
+| Use case | Production | Development/Testing | Production, high-throughput / ordered streams |
 
 ```yaml
-# NSQ
+# NSQ (default)
 broker:
   type: nsq
   nsq:
@@ -721,8 +736,51 @@ broker:
 
 # EventBus (development/testing)
 broker:
-  type: eventbus
+  type: event_bus
+
+# Kafka
+broker:
+  type: kafka
+  kafka:
+    brokers:
+      - kafka1:9092
+      - kafka2:9092
+    clientID: my-app
+    sasl:                          # optional
+      mechanism: SCRAM-SHA-256     # PLAIN / SCRAM-SHA-256 / SCRAM-SHA-512
+      username: user
+      password: pass
+    tls:                           # optional
+      enable: true
+      insecureSkipVerify: false
+      caFile: /path/to/ca.pem
+      certFile: /path/to/client.crt
+      keyFile: /path/to/client.key
 ```
+
+### Kafka Partition Key
+
+Kafka routes messages to partitions by key. Same-key messages land on the same partition, preserving order. Use `kafka.WithKey()` when publishing:
+
+```go
+import (
+    "github.com/cago-frame/cago/pkg/broker"
+    broker2 "github.com/cago-frame/cago/pkg/broker/broker"
+    kafkabroker "github.com/cago-frame/cago/pkg/broker/kafka"
+)
+
+broker.Default().Publish(ctx, "orders", &broker2.Message{Body: body},
+    kafkabroker.WithKey("user-123"))
+```
+
+Other broker backends (nsq, event_bus) silently ignore `kafka.WithKey()`.
+
+### Kafka Caveats
+
+- `Subscribe` requires a non-empty `Group` (Kafka consumer group id). The framework's `defaultGroup` already injects AppName, so this is transparent for normal usage.
+- `SubscribeOption.Retry=true` on Kafka **blocks the partition** — the offset is not committed, so the next poll redelivers the same message; subsequent messages in that partition wait. Use carefully; prefer an explicit retry topic for production pipelines.
+- `event.Requeue(delay)` is unsupported and returns `kafka.ErrRequeueUnsupported`. For retry with delay, publish to a dedicated retry topic.
+- `Concurrent > 1` spawns N Readers sharing the GroupID so Kafka rebalances partitions among them. Per-partition order is preserved (we do not fan out into a worker pool).
 
 ## Goroutines
 

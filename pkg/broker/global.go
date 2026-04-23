@@ -16,10 +16,6 @@ const instrumName = "github.com/cago-frame/cago/pkg/broker"
 
 // Broker 消息队列组件
 func Broker(ctx context.Context, config *configs.Config) error {
-	cfg := &Config{}
-	if err := config.Scan(ctx, "broker", cfg); err != nil {
-		return err
-	}
 	options := make([]Option, 0)
 	if tp := trace.Default(); tp != nil {
 		options = append(options, WithTracer(tp.Tracer(
@@ -29,7 +25,7 @@ func Broker(ctx context.Context, config *configs.Config) error {
 	}
 	options = append(options, WithDefaultGroup(config.AppName),
 		WithTopicPrefix(config.AppName+"."+string(config.Env)))
-	b, err := NewWithConfig(ctx, cfg, options...)
+	b, err := NewWithConfig(ctx, config, options...)
 	if err != nil {
 		return err
 	}

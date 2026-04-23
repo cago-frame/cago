@@ -3,8 +3,10 @@ package broker
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
+	"github.com/cago-frame/cago/configs"
 	"github.com/cago-frame/cago/pkg/logger"
 	trace2 "github.com/cago-frame/cago/pkg/opentelemetry/trace"
 	wrap2 "github.com/cago-frame/cago/pkg/utils/wrap"
@@ -15,8 +17,6 @@ import (
 	"go.uber.org/zap"
 
 	broker2 "github.com/cago-frame/cago/pkg/broker/broker"
-	"github.com/cago-frame/cago/pkg/broker/event_bus"
-	"github.com/cago-frame/cago/pkg/broker/nsq"
 )
 
 type Type string
@@ -24,24 +24,34 @@ type Type string
 const (
 	NSQ      Type = "nsq"
 	EventBus Type = "event_bus"
+	Kafka    Type = "kafka"
 )
 
+// Config broker 基础配置。具体 broker 的配置（如 broker.nsq、broker.kafka）
+// 由各 broker 子包在自己的 init() factory 里从 *configs.Config 中 Scan。
 type Config struct {
-	Type Type
-	NSQ  nsq.Config
+	Type Type `yaml:"type"`
 }
 
-func NewWithConfig(ctx context.Context, cfg *Config, opts ...Option) (broker2.Broker, error) {
-	var ret broker2.Broker
-	var err error
-	switch cfg.Type {
-	case NSQ:
-		ret, err = nsq.NewBroker(cfg.NSQ)
-	case EventBus:
-		ret = event_bus.NewEvBusBroker()
-	default:
-		return nil, errors.New("type not found")
+// NewWithConfig 根据配置构建 broker。要求用户已经通过
+// `import _ "github.com/cago-frame/cago/pkg/broker/<type>"` 完成自注册。
+// nsq 作为默认 broker 已由主包 default_nsq.go 内联注册。
+func NewWithConfig(ctx context.Context, config *configs.Config, opts ...Option) (broker2.Broker, error) {
+	cfg := &Config{}
+	if err := config.Scan(ctx, "broker", cfg); err != nil {
+		return nil, err
 	}
+	if cfg.Type == "" {
+		return nil, errors.New("broker.type is empty")
+	}
+	f := GetFactory(string(cfg.Type))
+	if f == nil {
+		return nil, fmt.Errorf(
+			"broker type %q not registered; please import the corresponding package, e.g. _ \"github.com/cago-frame/cago/pkg/broker/kafka\" or _ \"github.com/cago-frame/cago/pkg/broker/event_bus\" (nsq 默认已注册)",
+			cfg.Type,
+		)
+	}
+	ret, err := f(ctx, config)
 	if err != nil {
 		return nil, err
 	}
