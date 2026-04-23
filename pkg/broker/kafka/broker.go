@@ -145,7 +145,8 @@ func buildSASL(cfg *SASLConfig) (sasl.Mechanism, error) {
 
 func buildTLS(cfg *TLSConfig) (*tls.Config, error) {
 	tc := &tls.Config{
-		InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // 由用户显式开启
+		// InsecureSkipVerify 由用户显式开启
+		InsecureSkipVerify: cfg.InsecureSkipVerify,
 	}
 	if cfg.CAFile != "" {
 		caBytes, err := os.ReadFile(cfg.CAFile)
