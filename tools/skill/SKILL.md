@@ -241,7 +241,7 @@ err := testMux.Do(ctx, &api.CreateRequest{Username: "newuser"}, resp)
 testutils.Cache()                            // In-memory cache
 testutils.Redis()                            // Miniredis
 ctx, gormDB, mock := testutils.Database(t)   // sqlmock database via context (db.Ctx(ctx) uses mock)
-broker.SetBroker(event_bus.NewEvBusBroker()) // In-memory broker (requires import _ .../broker/event_bus)
+broker.SetBroker(event_bus.NewEvBusBroker()) // In-memory broker (requires normal import .../broker/event_bus)
 iam.SetDefault(iam.New(user_repo.User()))    // IAM with mock repo
 
 // Test cleanup helpers
