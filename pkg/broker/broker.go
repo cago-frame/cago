@@ -15,7 +15,6 @@ import (
 	"go.uber.org/zap"
 
 	broker2 "github.com/cago-frame/cago/pkg/broker/broker"
-	"github.com/cago-frame/cago/pkg/broker/event_bus"
 	"github.com/cago-frame/cago/pkg/broker/nsq"
 )
 
@@ -37,10 +36,12 @@ func NewWithConfig(ctx context.Context, cfg *Config, opts ...Option) (broker2.Br
 	switch cfg.Type {
 	case NSQ:
 		ret, err = nsq.NewBroker(cfg.NSQ)
-	case EventBus:
-		ret = event_bus.NewEvBusBroker()
 	default:
-		return nil, errors.New("type not found")
+		f := GetFactory(string(cfg.Type))
+		if f == nil {
+			return nil, errors.New("type not found")
+		}
+		ret, err = f(ctx, nil)
 	}
 	if err != nil {
 		return nil, err
