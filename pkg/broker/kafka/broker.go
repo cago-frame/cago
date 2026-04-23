@@ -56,8 +56,8 @@ func (b *kafkaBroker) Publish(ctx context.Context, topic string, data *broker.Me
 	return b.writer.WriteMessages(ctx, msg)
 }
 
-func (b *kafkaBroker) Subscribe(_ context.Context, _ string, _ broker.Handler, _ ...broker.SubscribeOption) (broker.Subscriber, error) {
-	return nil, errors.New("kafka: Subscribe not yet implemented (Task 11)")
+func (b *kafkaBroker) Subscribe(_ context.Context, topic string, h broker.Handler, opts ...broker.SubscribeOption) (broker.Subscriber, error) {
+	return newSubscribe(b, topic, h, broker.NewSubscribeOptions(opts...))
 }
 
 func (b *kafkaBroker) Close() error {
