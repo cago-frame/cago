@@ -159,6 +159,9 @@ func buildTLS(cfg *TLSConfig) (*tls.Config, error) {
 		}
 		tc.RootCAs = pool
 	}
+	if (cfg.CertFile == "") != (cfg.KeyFile == "") {
+		return nil, errors.New("kafka: certFile and keyFile must be set together")
+	}
 	if cfg.CertFile != "" && cfg.KeyFile != "" {
 		cert, err := tls.LoadX509KeyPair(cfg.CertFile, cfg.KeyFile)
 		if err != nil {

@@ -44,6 +44,17 @@ func TestBuildSASL_UnknownMechanism(t *testing.T) {
 	assert.Contains(t, err.Error(), "unsupported")
 }
 
+func TestBuildTLS_PartialCertKey(t *testing.T) {
+	// 只配置 CertFile / KeyFile 其中一项时必须显式报错，避免静默无 mTLS
+	_, err := buildTLS(&TLSConfig{CertFile: "/tmp/cert.pem"})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "certFile and keyFile")
+
+	_, err = buildTLS(&TLSConfig{KeyFile: "/tmp/key.pem"})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "certFile and keyFile")
+}
+
 var errTest = errors.New("test")
 
 func TestDecideCommit(t *testing.T) {
