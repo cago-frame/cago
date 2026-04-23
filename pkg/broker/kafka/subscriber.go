@@ -23,10 +23,7 @@ func newSubscribe(b *kafkaBroker, topic string, handler broker.Handler, options 
 	if options.Group == "" {
 		return nil, errors.New("kafka: Subscribe requires a non-empty Group (consumer group id)")
 	}
-	concurrent := options.Concurrent
-	if concurrent < 1 {
-		concurrent = 1
-	}
+	concurrent := max(options.Concurrent, 1)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	sub := &subscriber{
@@ -35,7 +32,7 @@ func newSubscribe(b *kafkaBroker, topic string, handler broker.Handler, options 
 		cancel:  cancel,
 	}
 
-	for i := 0; i < concurrent; i++ {
+	for range concurrent {
 		r := kgo.NewReader(kgo.ReaderConfig{
 			Brokers:        b.config.Brokers,
 			GroupID:        options.Group,
