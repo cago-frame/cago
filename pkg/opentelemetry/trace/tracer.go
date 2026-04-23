@@ -44,6 +44,19 @@ func NewWithConfig(ctx context.Context, cfg *Config, opts ...Option) (trace.Trac
 		sample = tracesdk.ParentBased(tracesdk.NeverSample())
 	}
 
+	res, err := resource.New(context.Background(),
+		//resource.WithSchemaURL(semconv.SchemaURL),
+		resource.WithHost(),
+		//resource.WithContainer(),
+		//resource.WithOS(),
+		//resource.WithProcess(),
+		resource.WithAttributes(
+			options.attrs...,
+		))
+	if err != nil {
+		return nil, err
+	}
+
 	var client otlptrace.Client
 	switch cfg.Type {
 	case "http":
@@ -58,7 +71,15 @@ func NewWithConfig(ctx context.Context, cfg *Config, opts ...Option) (trace.Trac
 		}
 		client = otlptracehttp.NewClient(clientOpts...)
 	case "noop":
+		// 完全空壳：SpanContext 无效，日志打不出 trace_id
 		return noop.NewTracerProvider(), nil
+	case "empty":
+		// 空 TracerProvider：生成有效的 trace_id/span_id 但不上报
+		// 方便日志、响应头等打出 trace_id
+		return tracesdk.NewTracerProvider(
+			tracesdk.WithResource(res),
+			tracesdk.WithSampler(sample),
+		), nil
 	default:
 		clientOpts := []otlptracegrpc.Option{
 			otlptracegrpc.WithEndpoint(cfg.Endpoint),
@@ -73,19 +94,6 @@ func NewWithConfig(ctx context.Context, cfg *Config, opts ...Option) (trace.Trac
 	}
 
 	exporter, err := otlptrace.New(ctx, client)
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := resource.New(context.Background(),
-		//resource.WithSchemaURL(semconv.SchemaURL),
-		resource.WithHost(),
-		//resource.WithContainer(),
-		//resource.WithOS(),
-		//resource.WithProcess(),
-		resource.WithAttributes(
-			options.attrs...,
-		))
 	if err != nil {
 		return nil, err
 	}
