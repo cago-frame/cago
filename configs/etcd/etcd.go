@@ -29,7 +29,9 @@ func init() {
 }
 
 type Config struct {
-	dbetcd.Config `mapstructure:",squash"`
+	// yaml:",inline" 让文件源的 yaml.v3 解码器摊平内嵌字段(它不认 mapstructure 的
+	// squash);两个 tag 都保留,以同时兼容 yaml 与 mapstructure 两条解码路径。
+	dbetcd.Config `yaml:",inline" mapstructure:",squash"`
 	Prefix        string
 }
 
