@@ -26,6 +26,16 @@ Cago 只对社区工具进行集成,大大减少迁移难度和学习成本,我�
 
 [部署资源](./deploy)
 
+### 代码检查
+
+仓库通过 `make lint` 运行固定版本的 golangci-lint，并内置 Cago 框架结构检查器
+[`cagolint`](./tools/cagolint)。除了常规 Go 静态检查外，它还会检查 API 路由元数据、
+Controller handler 签名、Service/Repository 命名和分层依赖。支持安全修复的规则可以通过
+`make lint-fix` 自动处理。
+
+CI 会在每次 push 和 pull request 时执行相同的 lint harness。规则列表、配置和开发方式见
+[`tools/cagolint/README.md`](./tools/cagolint/README.md)。
+
 cago 提供了[`gitlab-ci`](deploy/gitlab/.gitlab-ci.yml)、[`golanglint-ci`](./deploy/.golangci.yml)和
 [`Kubernetes helm`](./deploy)的 CI/CD 配置文件,可以快速帮你实现 CI/CD.
 
