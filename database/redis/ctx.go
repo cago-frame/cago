@@ -17,12 +17,20 @@ func (c *CtxRedis) Get(key string) *redis.StringCmd {
 	return c.Client.Get(c.ctx, key)
 }
 
+func (c *CtxRedis) MGet(keys ...string) *redis.SliceCmd {
+	return c.Client.MGet(c.ctx, keys...)
+}
+
 func (c *CtxRedis) Del(key string) *redis.IntCmd {
 	return c.Client.Del(c.ctx, key)
 }
 
 func (c *CtxRedis) Set(key string, value interface{}, expiration time.Duration) *redis.StatusCmd {
 	return c.Client.Set(c.ctx, key, value, expiration)
+}
+
+func (c *CtxRedis) MSet(values ...interface{}) *redis.StatusCmd {
+	return c.Client.MSet(c.ctx, values...)
 }
 
 func (c *CtxRedis) SetNX(key string, value interface{}, expiration time.Duration) *redis.BoolCmd {
@@ -33,8 +41,8 @@ func (c *CtxRedis) SetXX(key string, value interface{}, expiration time.Duration
 	return c.Client.SetXX(c.ctx, key, value, expiration)
 }
 
-func (c *CtxRedis) SetEx(key string, value interface{}, expiration time.Duration) *redis.StatusCmd {
-	return c.Client.SetEx(c.ctx, key, value, expiration)
+func (c *CtxRedis) SetArgs(key string, value interface{}, args redis.SetArgs) *redis.StatusCmd {
+	return c.Client.SetArgs(c.ctx, key, value, args)
 }
 
 func (c *CtxRedis) SetRange(key string, offset int64, value string) *redis.IntCmd {
@@ -43,10 +51,6 @@ func (c *CtxRedis) SetRange(key string, offset int64, value string) *redis.IntCm
 
 func (c *CtxRedis) GetRange(key string, start, end int64) *redis.StringCmd {
 	return c.Client.GetRange(c.ctx, key, start, end)
-}
-
-func (c *CtxRedis) GetSet(key string, value interface{}) *redis.StringCmd {
-	return c.Client.GetSet(c.ctx, key, value)
 }
 
 func (c *CtxRedis) Incr(key string) *redis.IntCmd {
@@ -119,6 +123,10 @@ func (c *CtxRedis) LRem(key string, count int64, value interface{}) *redis.IntCm
 
 func (c *CtxRedis) HGet(key, field string) *redis.StringCmd {
 	return c.Client.HGet(c.ctx, key, field)
+}
+
+func (c *CtxRedis) HMGet(key string, fields ...string) *redis.SliceCmd {
+	return c.Client.HMGet(c.ctx, key, fields...)
 }
 
 func (c *CtxRedis) HSet(key string, value ...interface{}) *redis.IntCmd {
@@ -201,28 +209,44 @@ func (c *CtxRedis) ZAddArgsIncr(key string, args redis.ZAddArgs) *redis.FloatCmd
 	return c.Client.ZAddArgsIncr(c.ctx, key, args)
 }
 
-func (c *CtxRedis) ZRemRangeByScore(key, min, max string) *redis.IntCmd { //nolint:predeclared
-	return c.Client.ZRemRangeByScore(c.ctx, key, min, max)
+func (c *CtxRedis) ZRemRangeByScore(key, minScore, maxScore string) *redis.IntCmd {
+	return c.Client.ZRemRangeByScore(c.ctx, key, minScore, maxScore)
 }
 
-func (c *CtxRedis) ZRemRangeByLex(key, min, max string) *redis.IntCmd { //nolint:predeclared
-	return c.Client.ZRemRangeByLex(c.ctx, key, min, max)
+func (c *CtxRedis) ZRemRangeByLex(key, minLex, maxLex string) *redis.IntCmd {
+	return c.Client.ZRemRangeByLex(c.ctx, key, minLex, maxLex)
 }
 
 func (c *CtxRedis) ZRemRangeByRank(key string, start, stop int64) *redis.IntCmd {
 	return c.Client.ZRemRangeByRank(c.ctx, key, start, stop)
 }
 
-func (c *CtxRedis) ZRevRangeByScore(key string, opt *redis.ZRangeBy) *redis.StringSliceCmd {
-	return c.Client.ZRevRangeByScore(c.ctx, key, opt)
+func (c *CtxRedis) ZRem(key string, members ...interface{}) *redis.IntCmd {
+	return c.Client.ZRem(c.ctx, key, members...)
+}
+
+func (c *CtxRedis) ZCard(key string) *redis.IntCmd {
+	return c.Client.ZCard(c.ctx, key)
+}
+
+func (c *CtxRedis) ZCount(key, minScore, maxScore string) *redis.IntCmd {
+	return c.Client.ZCount(c.ctx, key, minScore, maxScore)
+}
+
+func (c *CtxRedis) ZScore(key, member string) *redis.FloatCmd {
+	return c.Client.ZScore(c.ctx, key, member)
+}
+
+func (c *CtxRedis) ZRangeArgs(args redis.ZRangeArgs) *redis.StringSliceCmd {
+	return c.Client.ZRangeArgs(c.ctx, args)
+}
+
+func (c *CtxRedis) ZRangeArgsWithScores(args redis.ZRangeArgs) *redis.ZSliceCmd {
+	return c.Client.ZRangeArgsWithScores(c.ctx, args)
 }
 
 func (c *CtxRedis) ZRevRangeByScoreWithScores(key string, opt *redis.ZRangeBy) *redis.ZSliceCmd {
 	return c.Client.ZRevRangeByScoreWithScores(c.ctx, key, opt)
-}
-
-func (c *CtxRedis) ZRevRangeByLex(key string, opt *redis.ZRangeBy) *redis.StringSliceCmd {
-	return c.Client.ZRevRangeByLex(c.ctx, key, opt)
 }
 
 func (c *CtxRedis) ZRangeWithScores(key string, start, stop int64) *redis.ZSliceCmd {
@@ -235,12 +259,4 @@ func (c *CtxRedis) ZRevRangeWithScores(key string, start, stop int64) *redis.ZSl
 
 func (c *CtxRedis) ZRangeByScoreWithScores(key string, opt *redis.ZRangeBy) *redis.ZSliceCmd {
 	return c.Client.ZRangeByScoreWithScores(c.ctx, key, opt)
-}
-
-func (c *CtxRedis) ZRangeByScore(key string, opt *redis.ZRangeBy) *redis.StringSliceCmd {
-	return c.Client.ZRangeByScore(c.ctx, key, opt)
-}
-
-func (c *CtxRedis) ZRangeByLex(key string, opt *redis.ZRangeBy) *redis.StringSliceCmd {
-	return c.Client.ZRangeByLex(c.ctx, key, opt)
 }

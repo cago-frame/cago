@@ -4,10 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
-	"go/parser"
 	"go/token"
 	"log"
-	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -15,6 +13,7 @@ import (
 	"github.com/cago-frame/cago/internal/cmd/gen/utils"
 	"github.com/go-openapi/jsonreference"
 	"github.com/go-openapi/spec"
+	"golang.org/x/tools/go/packages"
 )
 
 type parseStruct struct {
@@ -351,12 +350,9 @@ func (p *parseStruct) findStruct(pkgName string, structName string) error {
 					return nil
 				}
 			}
-			// 解析包文件,转化为文件路径
-			dir, err := utils.PkgToPath(p.rootPkgPath, p.rootPkgName, dir)
-			if err != nil {
-				return err
-			}
-			return p.parseDir(dir, structName)
+			// 交给 Go 的包加载器解析 import path。不要手工拼接
+			// GOPATH/pkg/mod，否则会忽略 Go 的默认 GOPATH、GOMODCACHE 和 replace。
+			return p.parsePackage(dir, structName)
 		}
 	}
 	return errors.New("not found struct")
@@ -364,15 +360,32 @@ func (p *parseStruct) findStruct(pkgName string, structName string) error {
 
 // 解析指定目录下的指定类型
 func (p *parseStruct) parseDir(dir string, structName string) error {
-	pkgs, err := parser.ParseDir(token.NewFileSet(), dir, func(info os.FileInfo) bool {
-		return true
-	}, parser.ParseComments)
+	return p.loadPackage(dir, ".", structName)
+}
+
+// parsePackage 根据 import path 加载外部包。
+func (p *parseStruct) parsePackage(pkgPath string, structName string) error {
+	return p.loadPackage(p.rootPkgPath, pkgPath, structName)
+}
+
+func (p *parseStruct) loadPackage(dir, pattern, structName string) error {
+	pkgs, err := packages.Load(&packages.Config{
+		Mode: packages.NeedName | packages.NeedCompiledGoFiles | packages.NeedSyntax,
+		Dir:  dir,
+	}, pattern)
 	if err != nil {
-		return err
+		return fmt.Errorf("加载包 %s: %w", pattern, err)
+	}
+	if packages.PrintErrors(pkgs) > 0 {
+		return fmt.Errorf("加载包 %s 失败", pattern)
 	}
 	// 指定结构体
 	for _, pkg := range pkgs {
-		for filename, f := range pkg.Files {
+		for i, f := range pkg.Syntax {
+			if i >= len(pkg.CompiledGoFiles) {
+				continue
+			}
+			filename := pkg.CompiledGoFiles[i]
 			for _, decl := range f.Decls {
 				if genDecl, ok := decl.(*ast.GenDecl); ok {
 					for _, spec := range genDecl.Specs {

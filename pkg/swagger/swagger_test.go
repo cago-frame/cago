@@ -26,3 +26,11 @@ func TestSwagger_gen(t *testing.T) {
 	assert.Equalf(t, 1, len(paths), "swagger path")
 	//assert.Equal(t, "application/json", paths["/test/{uid}"].Get.Consumes[0])
 }
+
+func TestSwaggerGenWithoutGOPATHEnvironmentVariable(t *testing.T) {
+	t.Setenv("GOPATH", "")
+
+	s := NewSwagger(TestPath)
+	assert.NoError(t, s.gen())
+	assert.Len(t, s.swagger.Paths.Paths, 1, "swagger path")
+}
