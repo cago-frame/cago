@@ -122,7 +122,7 @@ func (c *Cmd) genService(apiFile string, f *ast.File, decl *ast.GenDecl, specs *
 				name,
 				name, name)
 		src = src[:serviceDecl.End()-2] + data + src[serviceDecl.End()-2:]
-		return os.WriteFile(serviceFile, []byte(src), 0644)
+		return utils.WriteGoFile(serviceFile, []byte(src))
 	}
 	return nil
 }
@@ -141,7 +141,7 @@ func (c *Cmd) regenService(serviceFile string, f *ast.File, apiFile string) erro
 
 	s := c.pkgName + prefix
 	data = strings.ReplaceAll(data, "{ApiPkg}", strings.ReplaceAll(s, "\\", "/"))
-	return os.WriteFile(serviceFile, []byte(data), 0644)
+	return utils.WriteGoFile(serviceFile, []byte(data))
 }
 
 func (c *Cmd) genServiceMethod(path string) error {
@@ -227,12 +227,12 @@ func (c *Cmd) genServiceFile(path string, f *ast.File, genDecl *ast.GenDecl, typ
 		methodStr = strings.ReplaceAll(methodStr, "{MethodResultValues}", utils.GetMethodResultValues(method.Type.(*ast.FuncType).Results.List))
 		appendStr += methodStr
 	}
-	// 写入文件
-	w, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644) //nolint:gosec // G304
+	if appendStr == "" {
+		return nil
+	}
+	data, err := os.ReadFile(path) //nolint:gosec // G304
 	if err != nil {
 		return err
 	}
-	defer w.Close() //nolint:errcheck
-	_, err = w.WriteString(appendStr)
-	return err
+	return utils.WriteGoFile(path, append(data, appendStr...))
 }

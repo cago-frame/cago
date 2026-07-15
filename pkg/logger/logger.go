@@ -8,6 +8,22 @@ import (
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
 
+// NewConsole creates a logger suitable for short-lived CLI commands. Unlike
+// the application logger, it does not require a config file and omits
+// timestamps and caller information to keep terminal output concise.
+func NewConsole(w io.Writer, level string) *zap.Logger {
+	encoderConfig := zapcore.EncoderConfig{
+		LevelKey:    "level",
+		MessageKey:  "message",
+		EncodeLevel: zapcore.CapitalLevelEncoder,
+	}
+	return zap.New(zapcore.NewCore(
+		zapcore.NewConsoleEncoder(encoderConfig),
+		zapcore.Lock(zapcore.AddSync(w)),
+		ToLevel(level),
+	))
+}
+
 type Config struct {
 	Level          string
 	DisableConsole bool          `yaml:"disableConsole"`

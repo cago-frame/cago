@@ -3,6 +3,7 @@ package gen
 import (
 	"github.com/cago-frame/cago/internal/cmd/gen/utils"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 const mongoEntityTpl = `package {{.tableName}}_entity
@@ -138,7 +139,9 @@ func (u *{{.lowerName}}Repo) FindPage(ctx context.Context, page httputils.PageRe
 `
 
 func (c *Cmd) genMongo(cmd *cobra.Command, args []string) error {
+	c.initLogger(cmd)
 	table := args[0]
+	c.log.Info("开始生成 MongoDB 模型", zap.String("table", table))
 	entityName := utils.UpperFirstChar(utils.ToCamel(table))
 	filepath := "internal/model/entity/" + table + "_entity/" + table + ".go"
 	f, err := utils.ParseTemplate(mongoEntityTpl, map[string]interface{}{
@@ -171,5 +174,9 @@ func (c *Cmd) genMongo(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	return utils.WriteFile(filepath, f)
+	if err := utils.WriteFile(filepath, f); err != nil {
+		return err
+	}
+	c.log.Info("MongoDB 模型生成完成", zap.String("table", table))
+	return nil
 }

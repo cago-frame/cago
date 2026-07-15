@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
+	"go/format"
+	"go/token"
 	"io"
 	"os"
 	"path"
@@ -51,27 +53,35 @@ func SwaggerName(field *ast.Field) string {
 
 // ToCamel 下划线转驼峰
 func ToCamel(str string) string {
+	if str == "" {
+		return ""
+	}
 	if str == "id" {
 		return "ID"
 	}
-	var result string
+	var result strings.Builder
 	for _, v := range strings.Split(str, "_") {
+		if v == "" {
+			continue
+		}
 		if v == "id" {
-			result += "ID"
+			result.WriteString("ID")
 		} else {
-			result += strings.ToUpper(v[:1]) + v[1:]
+			result.WriteString(UpperFirstChar(v))
 		}
 	}
-	return result
+	return result.String()
 }
 
 func GetTypeComment(decl *ast.GenDecl, typeSpec *ast.TypeSpec) string {
-	comment := ""
-	if decl.Doc != nil {
-		comment = decl.Doc.Text()
-		comment = strings.TrimSpace(strings.TrimPrefix(comment, typeSpec.Name.Name))
+	doc := typeSpec.Doc
+	if doc == nil {
+		doc = decl.Doc
 	}
-	return comment
+	if doc == nil {
+		return ""
+	}
+	return strings.TrimSpace(strings.TrimPrefix(doc.Text(), typeSpec.Name.Name))
 }
 
 func GetFieldComment(field *ast.Field) string {
@@ -87,11 +97,18 @@ func GetFieldComment(field *ast.Field) string {
 }
 
 func GetMethodParams(field []*ast.Field) string {
-	params := ""
+	var params []string
 	for _, param := range field {
-		params += param.Names[0].Name + " " + GetType(param.Type) + ", "
+		paramType := GetType(param.Type)
+		if len(param.Names) == 0 {
+			params = append(params, paramType)
+			continue
+		}
+		for _, name := range param.Names {
+			params = append(params, name.Name+" "+paramType)
+		}
 	}
-	return strings.TrimSuffix(params, ", ")
+	return strings.Join(params, ", ")
 }
 
 func GetMethodResult(field []*ast.Field) string {
@@ -144,16 +161,42 @@ func GetType(expr ast.Expr) string {
 	case *ast.Ident:
 		return expr.Name
 	case *ast.SelectorExpr:
-		return expr.X.(*ast.Ident).Name + "." + expr.Sel.Name
+		return GetType(expr.X) + "." + expr.Sel.Name
 	case *ast.StarExpr:
 		return "*" + GetType(expr.X)
 	case *ast.ArrayType:
 		return "[]" + GetType(expr.Elt)
 	case *ast.MapType:
 		return "map[" + GetType(expr.Key) + "]" + GetType(expr.Value)
+	case *ast.InterfaceType:
+		if len(expr.Methods.List) == 0 {
+			return "interface{}"
+		}
+	case *ast.ChanType:
+		prefix := "chan "
+		switch expr.Dir {
+		case ast.SEND:
+			prefix = "chan<- "
+		case ast.RECV:
+			prefix = "<-chan "
+		}
+		return prefix + GetType(expr.Value)
+	case *ast.Ellipsis:
+		return "..." + GetType(expr.Elt)
+	case *ast.FuncType:
+		return formatNode(expr)
 	default:
 		return ""
 	}
+	return formatNode(expr)
+}
+
+func formatNode(node ast.Node) string {
+	var result strings.Builder
+	if err := format.Node(&result, token.NewFileSet(), node); err != nil {
+		return ""
+	}
+	return result.String()
 }
 
 func ReadDir(path string, gen func(path string) error) error {
@@ -201,14 +244,25 @@ func FindRootPkgName(dir string) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	// 解析出包名
-	moduleName := strings.Split(string(b), "module ")[1]
-	moduleName = strings.Split(moduleName, "\n")[0]
+	moduleName := parseModuleName(string(b))
+	if moduleName == "" {
+		return "", "", errors.New("go.mod 中未找到 module 声明")
+	}
 	pkgPath, err := filepath.Abs(dir)
 	if err != nil {
 		return "", "", err
 	}
 	return pkgPath, moduleName, nil
+}
+
+func parseModuleName(data string) string {
+	for _, line := range strings.Split(data, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 2 && fields[0] == "module" {
+			return strings.Trim(fields[1], `"`)
+		}
+	}
+	return ""
 }
 
 func PkgToPath(rootPkg, rootPkgName, pkgName string) (string, error) {
@@ -315,5 +369,14 @@ func WriteFile(file string, data string) error {
 	if err := os.MkdirAll(path.Dir(file), 0755); err != nil {
 		return err
 	}
-	return os.WriteFile(file, []byte(data), 0644)
+	return WriteGoFile(file, []byte(data))
+}
+
+// WriteGoFile formats and writes generated Go source.
+func WriteGoFile(file string, data []byte) error {
+	formatted, err := format.Source(data)
+	if err != nil {
+		return fmt.Errorf("格式化生成文件 %s: %w", file, err)
+	}
+	return os.WriteFile(file, formatted, 0644)
 }

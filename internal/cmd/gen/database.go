@@ -11,6 +11,7 @@ import (
 	"github.com/cago-frame/cago/database/db"
 	"github.com/cago-frame/cago/internal/cmd/gen/utils"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 const entityTpl = `package {TableName}_entity
@@ -112,7 +113,9 @@ type Index struct {
 }
 
 func (c *Cmd) genDB(cmd *cobra.Command, args []string) error {
+	c.initLogger(cmd)
 	table := args[0]
+	c.log.Info("读取数据库表结构", zap.String("table", table))
 	// 读取appName
 	abs, _ := filepath.Abs(".")
 	cfg, err := configs.NewConfig(path.Base(abs))
@@ -141,7 +144,11 @@ func (c *Cmd) genDB(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	// 生成仓库实现
-	return c.genRepository(table)
+	if err := c.genRepository(table); err != nil {
+		return err
+	}
+	c.log.Info("GORM 模型生成完成", zap.String("table", table))
+	return nil
 }
 
 // 获取当前包名
@@ -161,6 +168,7 @@ func (c *Cmd) genRepository(table string) error {
 	filepath := "internal/repository/" + table + "_repo/" + table + ".go"
 	// 存在不创建
 	if _, err := os.Stat(filepath); err == nil {
+		c.logger().Debug("仓库文件已存在，跳过", zap.String("file", filepath))
 		return nil
 	} else if !os.IsNotExist(err) {
 		return err
@@ -179,13 +187,18 @@ func (c *Cmd) genRepository(table string) error {
 	if err := os.MkdirAll("internal/repository/"+table+"_repo/", 0755); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath, []byte(repository), 0644)
+	if err := utils.WriteGoFile(filepath, []byte(repository)); err != nil {
+		return err
+	}
+	c.logger().Info("创建 repository", zap.String("file", filepath))
+	return nil
 }
 
 func (c *Cmd) genEntity(table string, column []Column, index []Index) error {
 	filepath := "internal/model/entity/" + table + "_entity/" + table + ".go"
 	// 存在不创建
 	if _, err := os.Stat(filepath); err == nil {
+		c.logger().Debug("实体文件已存在，跳过", zap.String("file", filepath))
 		return nil
 	} else if !os.IsNotExist(err) {
 		return err
@@ -203,7 +216,11 @@ func (c *Cmd) genEntity(table string, column []Column, index []Index) error {
 	if err := os.MkdirAll("internal/model/entity/"+table+"_entity", 0755); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath, []byte(entity), 0644)
+	if err := utils.WriteGoFile(filepath, []byte(entity)); err != nil {
+		return err
+	}
+	c.logger().Info("创建 entity", zap.String("file", filepath))
+	return nil
 }
 
 func convSQLTag(column Column, index []Index) string {
