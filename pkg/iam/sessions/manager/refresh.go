@@ -141,8 +141,8 @@ func (h *refreshHTTPSessionManager) GetFromRequest(ctx *gin.Context) (*sessions.
 }
 
 type RefreshSessionResponse struct {
-	AccessToken   string `json:"access_token"`  //nolint:gosec // G117
-	RefreshToken  string `json:"refresh_token"` //nolint:gosec // G117
+	AccessToken   string `json:"access_token"`
+	RefreshToken  string `json:"refresh_token"`
 	Expire        int64  `json:"expire"`
 	RefreshExpire int64  `json:"refresh_expire"`
 }

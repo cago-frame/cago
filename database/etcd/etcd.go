@@ -13,7 +13,7 @@ var defaultClient *clientv3.Client
 type Config struct {
 	Endpoints []string
 	Username  string
-	Password  string //nolint:gosec // G117
+	Password  string
 }
 
 func Etcd(ctx context.Context, config *configs.Config) error {

@@ -119,7 +119,7 @@ func kindOfData(data interface{}) reflect.Kind {
 	value := reflect.ValueOf(data)
 	valueType := value.Kind()
 
-	if valueType == reflect.Ptr {
+	if valueType == reflect.Pointer {
 		valueType = value.Elem().Kind()
 	}
 	return valueType

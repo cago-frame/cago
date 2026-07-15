@@ -11,7 +11,7 @@ type RegisterRequest struct {
 	// 用户名
 	Username string `form:"username" binding:"required"`
 	// 密码
-	Password string `form:"password" binding:"required"` //nolint:gosec // G117
+	Password string `form:"password" binding:"required"`
 }
 
 type RegisterResponse struct {
@@ -23,7 +23,7 @@ type LoginRequest struct {
 	// 用户名
 	Username string `form:"username" binding:"required"`
 	// 密码
-	Password string `form:"password" binding:"required"` //nolint:gosec // G117
+	Password string `form:"password" binding:"required"`
 }
 
 type LoginResponse struct {
@@ -51,7 +51,7 @@ type LogoutResponse struct {
 // RefreshTokenRequest 刷新token
 type RefreshTokenRequest struct {
 	mux.Meta     `path:"/user/refresh" method:"POST"`
-	RefreshToken string `form:"refresh_token" json:"refresh_token" binding:"required"` //nolint:gosec // G117
+	RefreshToken string `form:"refresh_token" json:"refresh_token" binding:"required"`
 }
 
 type RefreshTokenResponse struct {

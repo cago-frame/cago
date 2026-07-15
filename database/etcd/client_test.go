@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -42,6 +43,17 @@ func (m *mockKV) Get(ctx context.Context, key string, opts ...clientv3.OpOption)
 		}, nil
 	}
 	return &clientv3.GetResponse{}, nil
+}
+
+func (m *mockKV) GetStream(ctx context.Context, key string, opts ...clientv3.OpOption) (clientv3.GetStreamChan, error) {
+	resp, err := m.Get(ctx, key, opts...)
+	if err != nil {
+		return nil, err
+	}
+	ch := make(chan clientv3.RangeStreamResponse, 1)
+	ch <- clientv3.RangeStreamResponse{RangeResponse: (*etcdserverpb.RangeResponse)(resp)}
+	close(ch)
+	return ch, nil
 }
 
 func (m *mockKV) Delete(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.DeleteResponse, error) {

@@ -14,7 +14,7 @@ var defaultRedis *redis.Client
 
 type Config struct {
 	Addr     string
-	Password string //nolint:gosec // G117
+	Password string
 	DB       int
 }
 
