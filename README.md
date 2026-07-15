@@ -16,6 +16,8 @@ Cago 只对社区工具进行集成,大大减少迁移难度和学习成本,我�
 
 [简单示例](./examples/simple)
 
+完整文档入口见 [Cago 文档导航](./docs/README.md)。
+
 ## 脚手架
 
 你可以安装脚手架来帮助你生成代码。
@@ -93,6 +95,12 @@ Cago使用三层架构，并混合了DDD的思想，推荐使用下面的目录�
 ### SKILL
 
 本项目提供了 AI 编程助手的 Skill 支持，详见 [Skill 文档](./tools/skill/README.md)。
+
+## 开发工具
+
+- [`cago`](./cmd/cago)：从 API、Service 或数据库结构生成项目代码和 Swagger 文档。
+- [`cagolint`](./tools/cagolint)：检查 Cago 项目的分层、路由元数据和命名约定，已集成到 `make lint`。
+- [`tools/skill`](./tools/skill)：供 AI 编程助手读取的框架知识，不是可执行程序，也不参与 Go 构建。
 
 ## 参考项目
 

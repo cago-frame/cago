@@ -20,11 +20,11 @@
 
 /configs/config.yaml
 
-/docs
+/docs/*
+!/docs/README.md
 /runtime
 /bin
 
 .claude
 .omc
 CLAUDE.md
-

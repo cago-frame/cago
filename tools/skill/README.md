@@ -58,7 +58,7 @@ Detailed documentation of the component system and configuration:
 - Etcd — `etcd.Default()`, cached client `NewCacheClient(WithCache())`, Watch auto-sync, config center
 - Logger — zap logging, context logger, logger field enrichment
 - OpenTelemetry — Auto-instrumented trace + manual spans, Prometheus Metrics
-- Broker — Message publish/subscribe, Subscribe options, Event interface, NSQ vs EventBus
+- Broker — Message publish/subscribe, backend registration, NSQ/EventBus/Kafka comparison, Kafka key and retry semantics
 - Goroutines — `gogo.Go` safe goroutine spawning
 
 ## Installation
@@ -80,3 +80,16 @@ The skill auto-triggers when code imports `github.com/cago-frame/cago` or the pr
 ### Other AI Tools
 
 Provide `SKILL.md` and the files under `references/` as context to the AI.
+
+## Maintenance
+
+This directory is documentation for AI assistants, not an executable Go tool. Keep it aligned with the current public APIs and tested examples rather than design plans.
+
+Review the Skill whenever a change affects:
+
+- exported components, configuration keys, or supported backends;
+- API/Controller/Service/Repository conventions;
+- CLI generation behavior or cagolint-enforced rules;
+- testing helpers, recommended examples, or project layout.
+
+Use `SKILL.md` for concise, frequently needed rules. Put long configuration matrices and complete examples under `references/` to avoid duplicating the same material in multiple files.

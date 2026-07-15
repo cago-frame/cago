@@ -189,6 +189,17 @@ Config API: `cfg.Scan(ctx, "db", &dbConfig)`, `cfg.String(ctx, "http.address")`,
 
 For complete config YAML examples, etcd config source setup, and all component configurations, see [references/components.md](references/components.md).
 
+### Broker Backends
+
+`component.Broker()` supports NSQ, EventBus, and Kafka. NSQ is registered by default. EventBus and Kafka use opt-in registration and require a blank import before the component starts:
+
+```go
+import _ "github.com/cago-frame/cago/pkg/broker/event_bus"
+import _ "github.com/cago-frame/cago/pkg/broker/kafka"
+```
+
+Use `broker.type: event_bus` or `broker.type: kafka` in configuration. Kafka publishing supports partition keys through `kafka.WithKey(...)`; Kafka does not support delayed `Event.Requeue`. See [references/components.md](references/components.md) for configuration, consumer-group, retry, and ordering semantics.
+
 ## Testing
 
 ### BDD/TDD Workflow (Recommended)

@@ -49,19 +49,19 @@ can terminate the app (like HTTP server).
 
 ## Pre-built Components
 
-| Constructor                 | Config Key                   | Description                  |
-|-----------------------------|------------------------------|------------------------------|
-| `component.Core()`          | `logger`, `trace`, `metrics` | Logger + OpenTelemetry       |
-| `component.Database()`      | `db` or `dbs`                | GORM database                |
-| `component.Redis()`         | `redis`                      | Redis client                 |
-| `component.Cache()`         | `cache`                      | Cache (Redis or in-memory)   |
-| `component.Broker()`        | `broker`                     | Message queue (NSQ/EventBus) |
-| `component.Etcd()`          | `etcd`                       | Etcd client                  |
-| `component.Mongo()`         | `mongo`                      | MongoDB                      |
-| `component.Elasticsearch()` | `elasticsearch`              | Elasticsearch                |
-| `cron.Cron()`               | -                            | Cron scheduler               |
-| `mux.HTTP(callback)`        | `http`                       | Gin HTTP server              |
-| `grpc.GRPC(callback, opts)` | `grpc`                       | gRPC server (auto otel)      |
+| Constructor | Config Key | Description |
+| --- | --- | --- |
+| `component.Core()` | `logger`, `trace`, `metrics` | Logger + OpenTelemetry |
+| `component.Database()` | `db` or `dbs` | GORM database |
+| `component.Redis()` | `redis` | Redis client |
+| `component.Cache()` | `cache` | Cache (Redis or in-memory) |
+| `component.Broker()` | `broker` | Message queue (NSQ/EventBus/Kafka) |
+| `component.Etcd()` | `etcd` | Etcd client |
+| `component.Mongo()` | `mongo` | MongoDB |
+| `component.Elasticsearch()` | `elasticsearch` | Elasticsearch |
+| `cron.Cron()` | - | Cron scheduler |
+| `mux.HTTP(callback)` | `http` | Gin HTTP server |
+| `grpc.GRPC(callback, opts)` | `grpc` | gRPC server (auto otel) |
 
 ## Configuration
 
@@ -803,4 +803,3 @@ gogo.Go(fn, gogo.WithIgnorePanic())
 
 - Panic recovery with logging
 - Graceful shutdown coordination via `gogo.Wait()` (framework waits up to 10s)
-
