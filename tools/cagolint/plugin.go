@@ -1,7 +1,7 @@
 package cagolint
 
 import (
-	"github.com/cago-frame/cagolint/analyzer"
+	"github.com/cago-frame/cago/tools/cagolint/analyzer"
 	"github.com/golangci/plugin-module-register/register"
 	"golang.org/x/tools/go/analysis"
 )

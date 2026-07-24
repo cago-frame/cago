@@ -17,7 +17,7 @@ name: golangci-lint
 destination: ./bin
 
 plugins:
-  - module: github.com/cago-frame/cagolint
+  - module: github.com/cago-frame/cago/tools/cagolint
     path: ./tools/cagolint
 ```
 
@@ -156,7 +156,7 @@ bin/golangci-lint run ./examples/simple/...
 
 ```yaml
 plugins:
-  - module: github.com/cago-frame/cagolint
+  - module: github.com/cago-frame/cago/tools/cagolint
     version: v0.1.0
 ```
 

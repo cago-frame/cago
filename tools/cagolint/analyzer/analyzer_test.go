@@ -3,7 +3,7 @@ package analyzer_test
 import (
 	"testing"
 
-	"github.com/cago-frame/cagolint/analyzer"
+	"github.com/cago-frame/cago/tools/cagolint/analyzer"
 	"golang.org/x/tools/go/analysis/analysistest"
 )
 

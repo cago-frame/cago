@@ -3,5 +3,5 @@ name: golangci-lint
 destination: ./bin
 
 plugins:
-  - module: github.com/cago-frame/cagolint
+  - module: github.com/cago-frame/cago/tools/cagolint
     path: ./tools/cagolint

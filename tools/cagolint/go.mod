@@ -1,4 +1,4 @@
-module github.com/cago-frame/cagolint
+module github.com/cago-frame/cago/tools/cagolint
 
 go 1.24.0
 
