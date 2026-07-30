@@ -2,6 +2,7 @@ version: "2"
 linters:
   enable:
     - bodyclose
+    - cagolint
     - copyloopvar
     - durationcheck
     - gosec
@@ -16,6 +17,17 @@ linters:
     - staticcheck
 
   settings:
+    custom:
+      cagolint:
+        type: module
+        description: Checks Cago framework structure and conventions.
+        original-url: https://github.com/cago-frame/cago/tree/main/tools/cagolint
+        settings:
+          api-dir: /internal/api
+          controller-dir: /internal/controller/
+          service-dir: /internal/service/
+          repository-dir: /internal/repository/
+          entity-dir: /internal/model/entity/
     gosec:
       excludes:
         - G115

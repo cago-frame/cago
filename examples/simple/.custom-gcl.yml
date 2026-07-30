@@ -1,0 +1,7 @@
+version: v2.12.2
+name: golangci-lint
+destination: ./bin
+
+plugins:
+  - module: github.com/cago-frame/cago/tools/cagolint
+    version: latest

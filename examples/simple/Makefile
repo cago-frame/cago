@@ -1,4 +1,10 @@
 
+GOLANGCI_LINT_VERSION ?= v2.12.2
+GOLANGCI_LINT := $(CURDIR)/bin/golangci-lint
+GOLANGCI_LINT_BUILDER := $(CURDIR)/bin/golangci-lint-builder
+
+.PHONY: check-golangci-lint lint lint-fix lint-config
+
 check-cago:
 ifneq ($(which cago),)
 	go install github.com/cago-frame/cago/cmd/cago@latest
@@ -9,10 +15,15 @@ ifneq ($(which mockgen),)
 	go install go.uber.org/mock/mockgen@latest
 endif
 
-check-golangci-lint:
-ifneq ($(which golangci-lint),)
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-endif
+check-golangci-lint: $(GOLANGCI_LINT)
+
+$(GOLANGCI_LINT_BUILDER):
+	@mkdir -p $(dir $@)
+	GOBIN=$(dir $@) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+	mv $(dir $@)golangci-lint $@
+
+$(GOLANGCI_LINT): $(GOLANGCI_LINT_BUILDER) .custom-gcl.yml
+	$(GOLANGCI_LINT_BUILDER) custom
 
 check-goconvey:
 ifneq ($(which goconvey),)
@@ -26,10 +37,13 @@ proto:
 		pkg/proto/user/user.proto
 
 lint: check-golangci-lint
-	golangci-lint run
+	$(GOLANGCI_LINT) run ./...
 
 lint-fix: check-golangci-lint
-	golangci-lint run --fix
+	$(GOLANGCI_LINT) run --fix ./...
+
+lint-config: check-golangci-lint
+	$(GOLANGCI_LINT) config verify
 
 test:
 	go test -v ./...
