@@ -191,14 +191,15 @@ For complete config YAML examples, etcd config source setup, and all component c
 
 ### Broker Backends
 
-`component.Broker()` supports NSQ, EventBus, and Kafka. NSQ is registered by default. EventBus and Kafka use opt-in registration and require a blank import before the component starts:
+`component.Broker()` supports NSQ, EventBus, Kafka, and Redis Stream. NSQ is registered by default. The others use opt-in registration and require a blank import before the component starts:
 
 ```go
 import _ "github.com/cago-frame/cago/pkg/broker/event_bus"
 import _ "github.com/cago-frame/cago/pkg/broker/kafka"
+import _ "github.com/cago-frame/cago/pkg/broker/redis_stream"
 ```
 
-Use `broker.type: event_bus` or `broker.type: kafka` in configuration. Kafka publishing supports partition keys through `kafka.WithKey(...)`; Kafka does not support delayed `Event.Requeue`. See [references/components.md](references/components.md) for configuration, consumer-group, retry, and ordering semantics.
+Use `broker.type: event_bus`, `kafka`, or `redis_stream` in configuration. Kafka publishing supports partition keys through `kafka.WithKey(...)`. Neither Kafka nor Redis Stream supports delayed `Event.Requeue`. Redis Stream requires a consumer group, redelivers unacked messages through a background `XAUTOCLAIM` loop, and needs `maxLen` configured because Redis has no automatic retention. See [references/components.md](references/components.md) for configuration, consumer-group, retry, and ordering semantics.
 
 ## Testing
 

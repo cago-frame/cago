@@ -55,7 +55,7 @@ can terminate the app (like HTTP server).
 | `component.Database()` | `db` or `dbs` | GORM database |
 | `component.Redis()` | `redis` | Redis client |
 | `component.Cache()` | `cache` | Cache (Redis or in-memory) |
-| `component.Broker()` | `broker` | Message queue (NSQ/EventBus/Kafka) |
+| `component.Broker()` | `broker` | Message queue (NSQ/EventBus/Kafka/Redis Stream) |
 | `component.Etcd()` | `etcd` | Etcd client |
 | `component.Mongo()` | `mongo` | MongoDB |
 | `component.Elasticsearch()` | `elasticsearch` | Elasticsearch |
@@ -117,14 +117,15 @@ cache:
   db: 1
 
 broker:
-  type: "nsq"           # "nsq" (default, built-in), "event_bus" (in-memory), or "kafka"
+  type: "nsq"           # "nsq" (default, built-in), "event_bus" (in-memory), "kafka", or "redis_stream"
   # nsq:
   #   addr: "127.0.0.1:4150"
   #   nsqlookupaddr:
   #     - "127.0.0.1:4161"
-  # event_bus and kafka require explicit import:
+  # event_bus, kafka and redis_stream require explicit import:
   #   import _ "github.com/cago-frame/cago/pkg/broker/event_bus"
   #   import _ "github.com/cago-frame/cago/pkg/broker/kafka"
+  #   import _ "github.com/cago-frame/cago/pkg/broker/redis_stream"
 
 trace:
   endpoint: "localhost:4317"
@@ -711,19 +712,22 @@ Broker backends follow the same opt-in model as `database/db` drivers:
 - **nsq** — default built-in, registered by `pkg/broker` automatically
 - **event_bus** — requires `import _ "github.com/cago-frame/cago/pkg/broker/event_bus"`
 - **kafka** — requires `import _ "github.com/cago-frame/cago/pkg/broker/kafka"`
+- **redis_stream** — requires `import _ "github.com/cago-frame/cago/pkg/broker/redis_stream"`
 
 If the configured `broker.type` is not registered, `component.Broker()` returns an error indicating which package to import.
 
 ### Backend Comparison
 
-| Feature | NSQ | EventBus | Kafka |
-|---------|-----|----------|-------|
-| Persistence | Yes | No (in-memory) | Yes |
-| Per-message retry | Supported | Not supported | Not supported (partition-level only) |
-| Requeue with delay | Supported | No-op | Not supported (returns `kafka.ErrRequeueUnsupported`) |
-| Multi-instance consumption | Supported (group) | Not supported | Supported (consumer group) |
-| Partition key | N/A | N/A | Via `kafka.WithKey()` option |
-| Use case | Production | Development/Testing | Production, high-throughput / ordered streams |
+| Feature | NSQ | EventBus | Kafka | Redis Stream |
+|---------|-----|----------|-------|--------------|
+| Persistence | Yes | No (in-memory) | Yes | Yes (bounded by `maxLen`) |
+| Per-message retry | Supported | Not supported | Not supported (partition-level only) | Supported (unacked message reclaimed by `XAUTOCLAIM`) |
+| Requeue with delay | Supported | No-op | Not supported (returns `kafka.ErrRequeueUnsupported`) | Not supported (returns `redis_stream.ErrRequeueUnsupported`) |
+| Multi-instance consumption | Supported (group) | Not supported | Supported (consumer group) | Supported (consumer group) |
+| Partition key | N/A | N/A | Via `kafka.WithKey()` option | N/A |
+| Retention | Broker-managed | N/A | Broker-managed | **None — you must set `maxLen`** |
+| Dead letter queue | Supported | N/A | Via retry topic | Not implemented |
+| Use case | Production | Development/Testing | Production, high-throughput / ordered streams | Production, when Redis already exists and you do not want a separate MQ |
 
 ```yaml
 # NSQ (default)
@@ -756,6 +760,19 @@ broker:
       caFile: /path/to/ca.pem
       certFile: /path/to/client.crt
       keyFile: /path/to/client.key
+
+# Redis Stream
+broker:
+  type: redis_stream
+  redis_stream:
+    addr: 127.0.0.1:6379     # leave empty to use a client injected via redis_stream.SetClient()
+    password: ""
+    db: 0
+    maxLen: 10000            # approximate stream cap (XADD MAXLEN ~); <=0 disables trimming
+    count: 16                # messages per XREADGROUP call
+    block: 5s                # XREADGROUP block duration
+    claimMinIdle: 30s        # how long a pending message stays idle before redelivery
+    claimInterval: 10s       # XAUTOCLAIM scan interval
 ```
 
 ### Kafka Partition Key
@@ -773,7 +790,7 @@ broker.Default().Publish(ctx, "orders", &broker2.Message{Body: body},
     kafkabroker.WithKey("user-123"))
 ```
 
-Other broker backends (nsq, event_bus) silently ignore `kafka.WithKey()`.
+Other broker backends (nsq, event_bus, redis_stream) silently ignore `kafka.WithKey()`.
 
 ### Kafka Caveats
 
@@ -781,6 +798,34 @@ Other broker backends (nsq, event_bus) silently ignore `kafka.WithKey()`.
 - `SubscribeOption.Retry=true` on Kafka **blocks the partition** — the offset is not committed, so the next poll redelivers the same message; subsequent messages in that partition wait. Use carefully; prefer an explicit retry topic for production pipelines.
 - `event.Requeue(delay)` is unsupported and returns `kafka.ErrRequeueUnsupported`. For retry with delay, publish to a dedicated retry topic.
 - `Concurrent > 1` spawns N Readers sharing the GroupID so Kafka rebalances partitions among them. Per-partition order is preserved (we do not fan out into a worker pool).
+
+### Redis Stream Client Injection
+
+The client comes from one of two places. Either configure `broker.redis_stream.addr` and let the broker create its own `*redis.Client`, or leave `addr` empty and inject an existing client before the Broker component starts:
+
+```go
+import (
+    "github.com/cago-frame/cago/database/redis"
+    "github.com/cago-frame/cago/pkg/broker/redis_stream"
+)
+
+// After the Redis component has started, before the Broker component starts
+redis_stream.SetClient(redis.Default())
+```
+
+An injected client is owned by the caller — `broker.Close()` will not close it. A self-created client is closed by `broker.Close()`.
+
+### Redis Stream Caveats
+
+- `Subscribe` requires a non-empty `Group` (Redis consumer group name). The framework's `defaultGroup` already injects AppName, so this is transparent for normal usage.
+- Redis does **not** redeliver pending messages on its own. A background `XAUTOCLAIM` loop reclaims messages idle for longer than `claimMinIdle` and redelivers them. This same loop takes over messages left behind by crashed consumers.
+- **`claimMinIdle` must exceed your handler's worst-case duration.** Otherwise the claimer will reclaim a message that is still being processed, causing duplicate delivery. Default is 30s.
+- `SubscribeOption.Retry=true` means a failed message is not acked and stays pending until reclaimed. With `Retry=false` (default) a failed message is still acked and dropped, so the pending list does not grow without bound.
+- There is no dead letter queue: a message that keeps failing under `Retry=true` is redelivered indefinitely. Cap attempts in your handler via `event.Attempted()` if you need a ceiling.
+- `event.Attempted()` returns 1 for a fresh delivery. On the redelivery path the real count is read from `XPENDING` (falling back to 1 if that query fails), because neither `XREADGROUP` nor `XAUTOCLAIM` returns a delivery count.
+- Redis Stream has no automatic retention. Always set `maxLen`, or the stream grows forever.
+- `Concurrent > 1` spawns N consumers in the same group with distinct names; Redis distributes messages among them. Ordering across consumers is not preserved.
+- Message encoding: the body goes into a `body` field and each header into an `h:<key>` field. Fields written by non-cago producers are ignored on decode.
 
 ## Goroutines
 

@@ -25,6 +25,8 @@ const (
 	NSQ      Type = "nsq"
 	EventBus Type = "event_bus"
 	Kafka    Type = "kafka"
+	// RedisStream 基于 Redis Stream 的消息队列
+	RedisStream Type = "redis_stream"
 )
 
 // Config broker 基础配置。具体 broker 的配置（如 broker.nsq、broker.kafka）
@@ -47,7 +49,7 @@ func NewWithConfig(ctx context.Context, config *configs.Config, opts ...Option) 
 	f := GetFactory(string(cfg.Type))
 	if f == nil {
 		return nil, fmt.Errorf(
-			"broker type %q not registered; please import the corresponding package, e.g. _ \"github.com/cago-frame/cago/pkg/broker/kafka\" or _ \"github.com/cago-frame/cago/pkg/broker/event_bus\" (nsq 默认已注册)",
+			"broker type %q not registered; please import the corresponding package, e.g. _ \"github.com/cago-frame/cago/pkg/broker/kafka\", _ \"github.com/cago-frame/cago/pkg/broker/redis_stream\" or _ \"github.com/cago-frame/cago/pkg/broker/event_bus\" (nsq 默认已注册)",
 			cfg.Type,
 		)
 	}
