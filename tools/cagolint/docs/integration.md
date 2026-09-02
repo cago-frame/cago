@@ -115,6 +115,7 @@ CI 和开发机均根据同一份 `.custom-gcl.yml` 构建，因此插件版本�
 | `service-dir` | `/internal/service/` |
 | `repository-dir` | `/internal/repository/` |
 | `entity-dir` | `/internal/model/entity/` |
+| `migrations-dir` | `/migrations` |
 
 如果项目采用不同布局，可以修改设置：
 
@@ -125,6 +126,7 @@ settings:
   service-dir: /app/service/
   repository-dir: /app/repository/
   entity-dir: /app/domain/entity/
+  migrations-dir: /database/migrations
 ```
 
 目录值使用 import path 片段，而不是本机文件系统绝对路径。前后 `/` 用于避免模块名中恰好包含

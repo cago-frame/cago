@@ -7,6 +7,7 @@ type Settings struct {
 	ServiceDir    string `json:"service-dir"`
 	RepositoryDir string `json:"repository-dir"`
 	EntityDir     string `json:"entity-dir"`
+	MigrationsDir string `json:"migrations-dir"`
 }
 
 func (s Settings) withDefaults() Settings {
@@ -24,6 +25,9 @@ func (s Settings) withDefaults() Settings {
 	}
 	if s.EntityDir == "" {
 		s.EntityDir = "/internal/model/entity/"
+	}
+	if s.MigrationsDir == "" {
+		s.MigrationsDir = "/migrations"
 	}
 	return s
 }

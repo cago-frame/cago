@@ -19,6 +19,7 @@ const (
 	contextPath  = "context"
 	ginPath      = "github.com/gin-gonic/gin"
 	databasePath = "github.com/cago-frame/cago/database/db"
+	gormPath     = "gorm.io/gorm"
 )
 
 type role int
@@ -31,6 +32,7 @@ const (
 	roleService
 	roleRepository
 	roleEntity
+	roleMigrations
 )
 
 // New builds the Cago framework analyzer.
@@ -62,6 +64,8 @@ func run(pass *analysis.Pass, settings Settings) {
 	case roleRepository:
 		checkPackageSuffix(pass, "_repo", "CAGO6001")
 		checkRepository(pass)
+	case roleMigrations:
+		checkMigrations(pass)
 	}
 }
 
@@ -82,9 +86,16 @@ func classify(pkgPath string, settings Settings) role {
 		return roleRepository
 	case strings.Contains(pkgPath, settings.EntityDir):
 		return roleEntity
+	case packageInDir(pkgPath, settings.MigrationsDir):
+		return roleMigrations
 	default:
 		return roleOther
 	}
+}
+
+func packageInDir(pkgPath, directory string) bool {
+	directory = strings.TrimSuffix(directory, "/")
+	return strings.HasSuffix(pkgPath, directory) || strings.Contains(pkgPath, directory+"/")
 }
 
 func checkDependencies(pass *analysis.Pass, packageRole role, settings Settings) {
@@ -512,6 +523,30 @@ func checkRepository(pass *analysis.Pass) {
 				}}
 			}
 			pass.Report(diagnostic)
+			return true
+		})
+	}
+}
+
+func checkMigrations(pass *analysis.Pass) {
+	for _, file := range pass.Files {
+		if generated(file) {
+			continue
+		}
+		ast.Inspect(file, func(node ast.Node) bool {
+			call, ok := node.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			selector, ok := call.Fun.(*ast.SelectorExpr)
+			if !ok || selector.Sel.Name != "AutoMigrate" {
+				return true
+			}
+			function, ok := pass.TypesInfo.Uses[selector.Sel].(*types.Func)
+			if !ok || function.Pkg() == nil || function.Pkg().Path() != gormPath {
+				return true
+			}
+			pass.Reportf(call.Pos(), "CAGO7001: migration 不能使用 AutoMigrate，请使用确定性的 DDL 语句或 Migrator 具体方法")
 			return true
 		})
 	}

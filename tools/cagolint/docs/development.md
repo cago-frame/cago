@@ -44,6 +44,7 @@ Controller
 Service
 Repository
 Entity
+Migrations
 Other
 ```
 
@@ -140,7 +141,7 @@ method 时，应生成一个合并后的编辑，避免 golangci-lint 或 analys
 - Repository 实现 Cago IAM interface；
 - repository mock 使用 `mock_user_repo` package；
 - protobuf 生成文件包含 `GetUserRequest`；
-- migration 使用显式 `*gorm.DB`。
+- migration 使用显式 `*gorm.DB`，且不调用 `AutoMigrate`。
 
 验证：
 

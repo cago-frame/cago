@@ -14,6 +14,7 @@ func TestAnalyzer(t *testing.T) {
 		"example.com/project/internal/api/badapi",
 		"example.com/project/internal/controller/bad_ctr",
 		"example.com/project/internal/repository/user_repo",
+		"example.com/project/migrations",
 	)
 }
 

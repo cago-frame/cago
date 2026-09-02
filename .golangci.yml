@@ -28,6 +28,7 @@ linters:
           service-dir: /internal/service/
           repository-dir: /internal/repository/
           entity-dir: /internal/model/entity/
+          migrations-dir: /migrations
     gosec:
       excludes:
         - G115

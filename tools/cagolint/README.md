@@ -61,6 +61,12 @@ golangci-lint v2 的 module plugin 机制集成到仓库的 lint harness 中。
 | `CAGO6001` | repository 目录和 package 使用 `_repo` 后缀 | 否 |
 | `CAGO6003` | repository 数据库访问使用 `db.Ctx(ctx)` | 将明确的 `db.Default()` 改为 `db.Ctx(ctx)` |
 
+### Migration 规则
+
+| 规则 | 说明 | 自动修复 |
+| --- | --- | --- |
+| `CAGO7001` | migrations 不能使用 GORM `AutoMigrate`，应使用确定性的 DDL 或 Migrator 具体方法 | 否 |
+
 完整代码示例见[规则手册](./docs/rules.md)。
 
 ## 仓库内使用
@@ -109,6 +115,7 @@ linters:
           service-dir: /internal/service/
           repository-dir: /internal/repository/
           entity-dir: /internal/model/entity/
+          migrations-dir: /migrations
 ```
 
 配置使用完整目录片段，避免模块名中恰好包含 `api`、`service` 等单词时被误判。

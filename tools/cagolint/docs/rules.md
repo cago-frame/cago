@@ -30,6 +30,7 @@
 | `CAGO5003` | service 实现未完整实现接口 | 否 |
 | `CAGO6001` | repository 包命名不符合约定 | 否 |
 | `CAGO6003` | repository 使用 `db.Default()` | 是 |
+| `CAGO7001` | migration 使用 GORM `AutoMigrate` | 否 |
 
 ## 分层依赖
 
@@ -650,6 +651,48 @@ func (u *userRepo) Find(
 `db.Ctx(ctx)` 会保留 request context，并配合 `db.WithContextDB(ctx, tx)` 传播事务。只有当前函数存在唯一、
 明确的 Context 参数时，插件才提供自动修复。
 
+## Migration
+
+### CAGO7001：禁止使用 AutoMigrate
+
+`migrations` 目录中的迁移必须是确定性的。`AutoMigrate` 会读取当前版本的 entity 定义；当 entity 随
+业务演进增加或修改字段后，重新执行一条历史 migration 可能产生与当时不同的数据库结构，甚至与后续
+migration 冲突。
+
+Bad：
+
+```go
+package migrations
+
+func createUsers(tx *gorm.DB) error {
+    return tx.AutoMigrate(&entity.User{})
+}
+```
+
+诊断：
+
+```text
+CAGO7001: migration 不能使用 AutoMigrate，请使用确定性的 DDL 语句或 Migrator 具体方法
+```
+
+Good：
+
+```go
+package migrations
+
+func createUsers(tx *gorm.DB) error {
+    return tx.Exec(`CREATE TABLE users (
+        id BIGINT PRIMARY KEY,
+        username VARCHAR(64) NOT NULL
+    )`).Error
+}
+```
+
+也可以使用语义明确、结果固定的 `tx.Migrator().CreateTable`、`AddColumn` 等具体方法，但不要让历史
+migration 依赖会持续变化的当前 entity。该规则通过类型信息确认调用目标确实是
+`gorm.io/gorm.(*DB).AutoMigrate`，其他类型上的同名方法不会误报。由于无法唯一推导目标 DDL，本规则
+不提供自动修复。
+
 ## 合法但容易误解的写法
 
 以下写法不会被 cagolint 报告：
@@ -690,7 +733,7 @@ mux.Meta `path:"/users"`
 - `repository/mock` 不执行 `_repo` package 约束；
 - 标准 Go generated 文件会跳过；
 - protobuf 等不在 `internal/api/<module>` 中的 Request 不会作为 Cago HTTP Request 检查；
-- migration 可以接收和使用显式的 `*gorm.DB`。
+- migration 可以接收和使用显式的 `*gorm.DB`，但不能调用其 `AutoMigrate` 方法。
 
 ## 局部忽略
 
