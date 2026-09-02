@@ -293,6 +293,8 @@ For complete test examples (IAM auth, sequential behavior, cross-controller auth
 - Code comments and commit messages in Chinese
 - Components panic on startup failure (fail-fast)
 - Testing: GoConvey + testify + go.uber.org/mock + go-sqlmock + miniredis
+- Redis tests: miniredis only. Inject failures with `mr.SetError(msg)` rather than
+  reaching for a command-expectation mock — it keeps state-based tests end-to-end
 - Linting: golangci-lint v2 (`make lint`)
 - Mock generation: `//go:generate mockgen -source file.go -destination mock/file.go`
 - **Common constants**: Use `github.com/cago-frame/cago/pkg/consts` for universal constants:

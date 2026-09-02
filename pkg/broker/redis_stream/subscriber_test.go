@@ -70,6 +70,20 @@ func TestSubscribe_RequiresGroup(t *testing.T) {
 	assert.Contains(t, err.Error(), "Group")
 }
 
+// 消费组已存在是正常情况，第二次 Subscribe 不应因 BUSYGROUP 失败
+func TestSubscribe_BusyGroupIgnored(t *testing.T) {
+	b, _ := newTestBroker(t, Config{})
+	handler := func(context.Context, broker2.Event) error { return nil }
+
+	first, err := b.Subscribe(context.Background(), "orders", handler, broker2.Group("g1"))
+	require.Nil(t, err)
+	defer func() { _ = first.Unsubscribe() }()
+
+	second, err := b.Subscribe(context.Background(), "orders", handler, broker2.Group("g1"))
+	require.Nil(t, err)
+	require.Nil(t, second.Unsubscribe())
+}
+
 // Retry 语义：handler 失败不 Ack，消息留在 pending，由后台 claimer 重新投递
 func TestSubscribe_RetryRedelivers(t *testing.T) {
 	ctx := context.Background()
@@ -150,4 +164,32 @@ func TestNewBroker_UsesInjectedClient(t *testing.T) {
 
 	// broker.Close 不应关闭注入的客户端
 	assert.Nil(t, cli.Ping(context.Background()).Err())
+}
+
+// 建组失败（且不是 BUSYGROUP）应直接让 Subscribe 失败
+func TestSubscribe_CreateGroupError(t *testing.T) {
+	mr := miniredis.RunT(t)
+	b, err := NewBroker(Config{Addr: mr.Addr(), Block: 50 * time.Millisecond})
+	require.Nil(t, err)
+	t.Cleanup(func() { _ = b.Close() })
+
+	mr.SetError("LOADING Redis is loading the dataset in memory")
+	_, err = b.Subscribe(context.Background(), "orders", func(context.Context, broker2.Event) error {
+		return nil
+	}, broker2.Group("g1"))
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "create consumer group")
+}
+
+// XADD 失败时 Publish 应把错误透出给调用方
+func TestPublish_Error(t *testing.T) {
+	mr := miniredis.RunT(t)
+	b, err := NewBroker(Config{Addr: mr.Addr(), Block: 50 * time.Millisecond})
+	require.Nil(t, err)
+	t.Cleanup(func() { _ = b.Close() })
+
+	mr.SetError("LOADING Redis is loading the dataset in memory")
+	err = b.Publish(context.Background(), "orders", &broker2.Message{Body: []byte("x")})
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "LOADING")
 }

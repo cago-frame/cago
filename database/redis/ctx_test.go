@@ -52,3 +52,27 @@ func TestCtxRedisCommonCommands(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []interface{}{"2", nil}, hashValues)
 }
+
+// key 不存在时应原样透出 redis.Nil，而不是被包装成其他错误
+func TestCtxRedisGetNil(t *testing.T) {
+	server := miniredis.RunT(t)
+	client := redislib.NewClient(&redislib.Options{Addr: server.Addr()})
+	t.Cleanup(func() { require.NoError(t, client.Close()) })
+	c := &CtxRedis{Client: client, ctx: context.Background()}
+
+	_, err := c.Get("missing").Result()
+	assert.ErrorIs(t, err, redislib.Nil)
+}
+
+// 底层报错时应原样透出，方便上层判断
+func TestCtxRedisPropagatesError(t *testing.T) {
+	server := miniredis.RunT(t)
+	client := redislib.NewClient(&redislib.Options{Addr: server.Addr()})
+	t.Cleanup(func() { require.NoError(t, client.Close()) })
+	c := &CtxRedis{Client: client, ctx: context.Background()}
+
+	server.SetError("LOADING Redis is loading the dataset in memory")
+	err := c.Del("key").Err()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "LOADING")
+}
