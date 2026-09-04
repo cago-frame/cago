@@ -22,6 +22,30 @@ dbs:
       dsn: clickhouse://127.0.0.1:9009/default?read_timeout=10s
 ```
 
+## 连接池
+
+连接池参数写在库自己的配置下,多库模式每个库各配各的:
+
+```yaml
+db:
+    driver: mysql
+    dsn: root:password@tcp(127.0.0.1:3306)/db?charset=utf8mb4&parseTime=True&loc=Local
+    maxOpenConns: 40      # 最大连接数, <=0 表示无上限
+    maxIdleConns: 20      # 最大空闲连接数
+    connMaxLifetime: 30m  # 连接最长存活时间
+    connMaxIdleTime: 5m   # 连接最长空闲时间
+```
+
+**每项零值表示不设置**,保持 `database/sql` 自己的默认值。而那套默认值对长期跑的
+服务是不合适的,上线前建议配一遍:
+
+- `maxIdleConns` 默认 2 —— 并发一上来就不停地建/拆 TCP + 数据库握手;
+- `maxOpenConns` 默认无上限 —— 一次流量尖峰就能顶穿数据库的最大连接数;
+- `connMaxLifetime` 默认永不过期 —— 主从切换后会一直攥着指向旧主的死连接。
+
+多副本部署时 `maxOpenConns` 是**每个副本**的上限,调之前先算
+「副本数 × maxOpenConns ≤ 数据库的最大连接数」——MySQL 默认只有 151。
+
 ## 使用
 
 ```go

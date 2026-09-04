@@ -95,6 +95,12 @@ db:
   prefix: "t_"
   debug: false
   prepareStmt: true
+  # Connection pool — each field defaults to zero, meaning "leave database/sql alone".
+  # See the Database section below; production services should set these.
+  maxOpenConns: 40
+  maxIdleConns: 20
+  connMaxLifetime: 30m
+  connMaxIdleTime: 5m
 
 # OR multi-database:
 # dbs:
@@ -185,6 +191,35 @@ db.WithContextDB(ctx, tx)          // Set *gorm.DB (e.g. transaction) in context
 db.WithContext(ctx, "secondary")   // Set named DB in context
 db.RecordNotFound(err)             // Check if gorm.ErrRecordNotFound
 ```
+
+### Connection Pool
+
+Pool settings live under the database's own config key, so in multi-database mode each
+database gets its own pool:
+
+```yaml
+db:
+  driver: mysql
+  dsn: "..."
+  maxOpenConns: 40      # max connections; <=0 means unlimited
+  maxIdleConns: 20      # max idle connections
+  connMaxLifetime: 30m  # max connection lifetime
+  connMaxIdleTime: 5m   # max idle time before a connection is recycled
+```
+
+**Each field's zero value means "don't call the setter"**, keeping the `database/sql`
+defaults. Those defaults are wrong for a long-running service, so set them before
+going to production:
+
+- `maxIdleConns` defaults to 2 — under concurrency the app constantly opens and tears
+  down TCP + database handshakes;
+- `maxOpenConns` defaults to unlimited — one traffic spike can exhaust the database's
+  connection limit;
+- `connMaxLifetime` defaults to never expiring — after a failover the app keeps holding
+  dead connections pointing at the old primary.
+
+With multiple replicas `maxOpenConns` is a **per-replica** limit: check that
+`replicas × maxOpenConns ≤ the database's max connections` (MySQL defaults to 151).
 
 ### Transaction Pattern
 

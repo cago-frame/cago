@@ -43,6 +43,19 @@ type Config struct {
 	//ReaderDsn []string `yaml:"readerDsn,omitempty"` // 读取数据源
 	// gorm配置
 	PrepareStmt bool `yaml:"prepareStmt,omitempty"` // 是否开启预编译
+
+	// 连接池。这几项 gorm 不管，由 newDB 拿到底层的 *sql.DB 之后自己写进去。
+	// 零值表示不动,保持 database/sql 自己的默认值——而那套默认值对长期跑的服务
+	// 是不合适的,上线前建议按下面的说明配一遍:
+	//   - MaxIdleConns 默认 2,并发一上来就会不停地建/拆 TCP + 数据库握手;
+	//   - MaxOpenConns 默认无上限,一次流量尖峰就能顶穿数据库的最大连接数;
+	//   - ConnMaxLifetime 默认永不过期,主从切换后会一直攥着指向旧主的死连接。
+	// 多副本部署时 MaxOpenConns 是**每个副本**的上限,调之前先算
+	// 「副本数 × MaxOpenConns ≤ 数据库的最大连接数」(MySQL 默认只有 151)。
+	MaxOpenConns    int           `yaml:"maxOpenConns,omitempty"`    // 最大连接数,<=0 表示无上限
+	MaxIdleConns    int           `yaml:"maxIdleConns,omitempty"`    // 最大空闲连接数,超过 MaxOpenConns 时由 database/sql 自动压到 MaxOpenConns
+	ConnMaxLifetime time.Duration `yaml:"connMaxLifetime,omitempty"` // 连接最长存活时间,<=0 表示永不过期
+	ConnMaxIdleTime time.Duration `yaml:"connMaxIdleTime,omitempty"` // 连接最长空闲时间,<=0 表示不因空闲而回收
 }
 
 type GroupConfig map[string]*Config
@@ -88,6 +101,9 @@ func (d *DB) newDB(cfg *Config, debug bool) (*gorm.DB, error) {
 	}
 	orm, err := gorm.Open(driver[cfg.Driver](cfg), gormConfig)
 	if err != nil {
+		return nil, err
+	}
+	if err := applyPool(orm, cfg); err != nil {
 		return nil, err
 	}
 	tracingPlugin := make([]tracing.Option, 0)
