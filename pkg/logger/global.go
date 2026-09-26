@@ -37,10 +37,10 @@ func Logger(ctx context.Context, config *configs.Config) error {
 	level := ToLevel(cfg.Level)
 	if cfg.LogFile.Enable {
 		if cfg.LogFile.Filename != "" {
-			opts = append(opts, AppendCore(NewFileCore(level, cfg.LogFile.Filename)))
+			opts = append(opts, AppendCore(NewRotateFileCore(level, cfg.LogFile.Filename, cfg.LogFile)))
 		}
 		if cfg.LogFile.ErrorFilename != "" {
-			opts = append(opts, AppendCore(NewFileCore(zap.ErrorLevel, cfg.LogFile.ErrorFilename)))
+			opts = append(opts, AppendCore(NewRotateFileCore(zap.ErrorLevel, cfg.LogFile.ErrorFilename, cfg.LogFile)))
 		}
 	}
 	if config.Debug {

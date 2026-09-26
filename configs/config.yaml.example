@@ -54,6 +54,11 @@ logger:
         enable: true
         errorFilename: ./runtime/logs/cago.err.log
         filename: ./runtime/logs/cago.log
+        # 轮转参数，零值取默认值，负数表示不限
+        maxSize: 2 # 单个文件大小上限（MB）
+        maxBackups: 10 # 保留的已轮转文件个数
+        maxAge: 30 # 已轮转文件保留天数
+        compress: false # 是否 gzip 压缩已轮转的文件
     # 不推荐该方式, 推荐使用`promtail`来抓取日志
     loki:
         level: info

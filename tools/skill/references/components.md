@@ -86,6 +86,11 @@ logger:
     enable: true
     filename: ./runtime/logs/app.log
     errorFilename: ./runtime/logs/app.err.log
+    # Rotation (lumberjack) — zero means default; negative means unlimited.
+    # maxSize: 2       # MB per file
+    # maxBackups: 10   # rotated files to keep
+    # maxAge: 30       # days to keep rotated files
+    # compress: false  # gzip rotated files
   # loki:
   #   url: "http://localhost:3100/loki/api/v1/push"
 
