@@ -12,7 +12,7 @@ cagolint 使用 golangci-lint v2 module plugin。构建配置和运行配置是�
 `.custom-gcl.yml`：
 
 ```yaml
-version: v2.12.2
+version: v2.14.0
 name: golangci-lint
 destination: ./bin
 
@@ -48,7 +48,7 @@ linters:
 ## 构建流程
 
 ```text
-官方 golangci-lint v2.12.2 builder
+官方 golangci-lint v2.14.0 builder
                  │
                  ├── 读取 .custom-gcl.yml
                  │
