@@ -175,8 +175,9 @@ func (s *Swagger) writeGoDoc(packageName string, output io.Writer, swagger *spec
 		Description   string
 		Version       string
 	}{
-		Timestamp:     time.Now(),
-		GeneratedTime: true,
+		Timestamp: time.Now(),
+		// 不写生成时间：docs.go 会被提交并做「重新生成后比对」，同一输入必须逐字节相同（与 swaggo 路径的 GeneratedTime: false 一致）
+		GeneratedTime: false,
 		Doc:           string(buf),
 		Host:          swagger.Host,
 		PackageName:   packageName,
