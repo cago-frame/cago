@@ -8,6 +8,7 @@ import (
 
 	"github.com/cago-frame/cago/internal/cmd/gen/utils"
 	"github.com/go-openapi/spec"
+	"golang.org/x/tools/go/packages"
 )
 
 const (
@@ -25,12 +26,19 @@ type Swagger struct {
 
 	rootPkgPath string
 	rootPkgName string
+
+	// loadPackages 加载 Go 包（默认 packages.Load；测试替换它来数调用次数）。
+	loadPackages func(cfg *packages.Config, patterns ...string) ([]*packages.Package, error)
+	// pkgCache 已加载的包，键是「目录|模式」。
+	pkgCache map[string][]*packages.Package
 }
 
 func NewSwagger(apiDir string) *Swagger {
 	return &Swagger{
 		apiDir:           apiDir,
 		InnerDefinitions: make(map[string]spec.Schema),
+		loadPackages:     packages.Load,
+		pkgCache:         make(map[string][]*packages.Package),
 	}
 }
 

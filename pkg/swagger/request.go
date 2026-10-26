@@ -311,6 +311,12 @@ func (s *Swagger) parseRoute(filename string, file *ast.File, decl *ast.GenDecl,
 			pathItem.Put = operation
 		case http.MethodDelete:
 			pathItem.Delete = operation
+		case http.MethodPatch:
+			pathItem.Patch = operation
+		case http.MethodHead:
+			pathItem.Head = operation
+		case http.MethodOptions:
+			pathItem.Options = operation
 		}
 		s.swagger.Paths.Paths[urlPath] = pathItem
 	}

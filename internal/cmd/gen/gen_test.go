@@ -157,6 +157,56 @@ type (
 	requireValidGo(t, controller)
 }
 
+func TestGenCommandDocOnlyFlag(t *testing.T) {
+	cmd := NewGenCmd()
+	flag := cmd.Commands()[0].Flags().Lookup("doc-only")
+	require.NotNil(t, flag)
+	require.Equal(t, "false", flag.DefValue)
+}
+
+// 只生成文档：写出 docs/swagger.json，不生成 controller / service——
+// api 文件与 controller 不是一一对应的项目（多个 api 文件共用一个控制器）也能单独出文档。
+func TestGenDocOnlySkipsControllerAndService(t *testing.T) {
+	root := t.TempDir()
+	apiDir := filepath.Join(root, "internal", "api")
+	require.NoError(t, os.MkdirAll(filepath.Join(apiDir, "user"), 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/project\n\ngo 1.24\n"), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(apiDir, "router.go"), []byte(`package api
+
+// Router 路由
+// @title    文档
+// @version  1.0
+func Router() error { return nil }
+`), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(apiDir, "user", "user.go"), []byte(`package user
+
+import "github.com/cago-frame/cago/server/mux"
+
+// CreateRequest creates a user.
+type CreateRequest struct {
+	mux.Meta `+"`path:\"/users\" method:\"POST\"`"+`
+	Name string `+"`json:\"name\"`"+`
+}
+
+type CreateResponse struct {
+	ID int64 `+"`json:\"id\"`"+`
+}
+`), 0644))
+	t.Chdir(root)
+
+	cmd := NewGenCmd()
+	command := cmd.Commands()[0]
+	command.SetErr(&bytes.Buffer{})
+	cmd.apiPath = "./internal/api"
+	cmd.docOnly = true
+	require.NoError(t, cmd.gen(command, nil))
+
+	doc := readTestFile(t, filepath.Join(root, "docs", "swagger.json"))
+	require.Contains(t, doc, `"/users"`)
+	require.NoDirExists(t, filepath.Join(root, "internal", "controller"))
+	require.NoDirExists(t, filepath.Join(root, "internal", "service"))
+}
+
 func TestSwaggerHelpers(t *testing.T) {
 	require.Equal(t, "/users/{id}/orders/{orderID}", routePathForSwagger("/users/:id/orders/:orderID"))
 	require.Equal(t, "json", swaggerMimeType(JSONBodyType))

@@ -27,6 +27,7 @@ type Cmd struct {
 	pkgPath     string
 	defaultBody string
 	swagger     bool
+	docOnly     bool
 	projectPath string
 	verbose     bool
 	log         *zap.Logger
@@ -57,6 +58,7 @@ func (c *Cmd) Commands() []*cobra.Command {
 	ret.Flags().StringVarP(&c.apiPath, "dir", "d", "./internal/api", "api目录")
 	ret.Flags().BoolVarP(&c.swagger, "swagger", "s", false, "在controller方法上生成Swagger注释")
 	ret.Flags().BoolVarP(&c.verbose, "verbose", "v", false, "显示详细生成日志")
+	ret.Flags().BoolVar(&c.docOnly, "doc-only", false, "只生成swagger文档,不生成controller和service")
 	return []*cobra.Command{ret}
 }
 
@@ -73,11 +75,14 @@ func (c *Cmd) gen(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := utils.ReadDir(c.apiPath, func(path string) error {
-		c.log.Debug("扫描 API 文件", zap.String("file", path))
-		return c.genFile(path)
-	}); err != nil {
-		return err
+	// --doc-only 跳过 controller / service 生成：api 文件与控制器不是一一对应的项目也能单独出文档
+	if !c.docOnly {
+		if err := utils.ReadDir(c.apiPath, func(path string) error {
+			c.log.Debug("扫描 API 文件", zap.String("file", path))
+			return c.genFile(path)
+		}); err != nil {
+			return err
+		}
 	}
 	if c.swagger {
 		c.log.Info("使用 Swaggo 生成 Swagger 文档")
