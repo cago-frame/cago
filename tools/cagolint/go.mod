@@ -1,6 +1,6 @@
 module github.com/cago-frame/cago/tools/cagolint
 
-go 1.24.0
+go 1.27.3
 
 require (
 	github.com/golangci/plugin-module-register v0.1.2

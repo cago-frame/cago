@@ -7,6 +7,7 @@ import (
 	"go/token"
 	"log"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -45,8 +46,12 @@ func (p *parseStruct) parseStruct(typeSpec *ast.TypeSpec) error {
 		}
 		return nil
 	}
+	// 先登记占位再解析字段：自引用 / 互相引用的类型递归回来时命中上面的「生成过」直接落成 $ref，
+	// 不再无限展开；解析完下面整体覆盖，失败则撤掉占位。
+	p.swagger.Definitions[name] = spec.Schema{SchemaProps: spec.SchemaProps{Type: []string{"object"}}}
 	schema, err := p.parseFieldType(typeSpec.Type)
 	if err != nil {
+		delete(p.swagger.Definitions, name)
 		return err
 	}
 	// 基础类型,并且是type定义的,则搜索当前文件,查看是不是enum类型
@@ -178,18 +183,32 @@ func (p *parseStruct) parseFieldType(fieldType ast.Expr) (spec.Schema, error) {
 				if field.Tag == nil {
 					continue
 				}
+				// json:"-" 的字段不进 JSON
+				name := utils.SwaggerName(field)
+				if name == "-" {
+					continue
+				}
 				// 解析字段
 				schema, err := p.parseFieldSwagger(field)
 				if err != nil {
 					return spec.Schema{}, err
 				}
-				swaggerType.Properties[utils.SwaggerName(field)] = schema
+				swaggerType.Properties[name] = schema
 			}
 			swaggerType.Type = []string{"object"}
 			return spec.Schema{
 				SchemaProps: swaggerType,
 			}, nil
 		} else if expr, ok := fieldType.(*ast.ArrayType); ok {
+			// []byte 按 encoding/json 的口径是 base64 字符串
+			if elt, ok := expr.Elt.(*ast.Ident); ok && elt.Name == "byte" {
+				return spec.Schema{
+					SchemaProps: spec.SchemaProps{
+						Type:   []string{"string"},
+						Format: "byte",
+					},
+				}, nil
+			}
 			// 数组类型
 			// 解析数组类型
 			schema, err := p.parseFieldType(expr.Elt)
@@ -219,7 +238,7 @@ func (p *parseStruct) parseFieldType(fieldType ast.Expr) (spec.Schema, error) {
 	switch typeName {
 	case "string":
 		swaggerType.Type = spec.StringOrArray{"string"}
-	case "int", "int64", "int32", "int16", "int8", "uint", "uint64", "uint32", "uint16", "uint8":
+	case "int", "int64", "int32", "int16", "int8", "uint", "uint64", "uint32", "uint16", "uint8", "byte", "rune":
 		swaggerType.Type = spec.StringOrArray{"integer"}
 	case "float32", "float64":
 		swaggerType.Type = spec.StringOrArray{"number"}
@@ -340,6 +359,15 @@ func (p *parseStruct) findStruct(pkgName string, structName string) error {
 		dir := strings.Trim(f.Path.Value, "\"")
 		if (f.Name != nil && f.Name.Name == pkgName) || (path.Base(dir) == pkgName) {
 			// 处理特殊结构
+			if dir == "encoding/json" && structName == "RawMessage" {
+				// 原样透传的任意 JSON
+				p.swagger.Definitions["json.RawMessage"] = spec.Schema{
+					SchemaProps: spec.SchemaProps{
+						Type: []string{"object"},
+					},
+				}
+				return nil
+			}
 			if dir == "time" {
 				if structName == "Time" {
 					p.swagger.Definitions["time.Time"] = spec.Schema{
@@ -369,18 +397,18 @@ func (p *parseStruct) parsePackage(pkgPath string, structName string) error {
 }
 
 func (p *parseStruct) loadPackage(dir, pattern, structName string) error {
-	pkgs, err := packages.Load(&packages.Config{
-		Mode: packages.NeedName | packages.NeedCompiledGoFiles | packages.NeedSyntax,
-		Dir:  dir,
-	}, pattern)
+	pkgs, err := p.loadCached(dir, pattern)
 	if err != nil {
-		return fmt.Errorf("加载包 %s: %w", pattern, err)
-	}
-	if packages.PrintErrors(pkgs) > 0 {
-		return fmt.Errorf("加载包 %s 失败", pattern)
+		return err
 	}
 	// 指定结构体
 	for _, pkg := range pkgs {
+		// 记包自己的源码目录：按 import path 加载时 dir 是项目根目录，
+		// 用它拼文件名会让该类型里引用的同包类型跑到项目根目录去找
+		pkgDir := dir
+		if len(pkg.GoFiles) > 0 {
+			pkgDir = filepath.Dir(pkg.GoFiles[0])
+		}
 		for i, f := range pkg.Syntax {
 			if i >= len(pkg.CompiledGoFiles) {
 				continue
@@ -391,7 +419,7 @@ func (p *parseStruct) loadPackage(dir, pattern, structName string) error {
 					for _, spec := range genDecl.Specs {
 						if typeSpec, ok := spec.(*ast.TypeSpec); ok {
 							if typeSpec.Name.Name == structName {
-								return newParseStruct(path.Join(dir, path.Base(filename)), p.Swagger, f).
+								return newParseStruct(filepath.Join(pkgDir, filepath.Base(filename)), p.Swagger, f).
 									parseStruct(typeSpec)
 							}
 						}
@@ -401,4 +429,25 @@ func (p *parseStruct) loadPackage(dir, pattern, structName string) error {
 		}
 	}
 	return fmt.Errorf("从%s中找不到类型: %s", dir, structName)
+}
+
+// loadCached 按「目录 + 模式」缓存加载结果：每次加载都要起一次 go list，
+// 不缓存时每个被引用的类型都会重新加载它所在的包。
+func (p *parseStruct) loadCached(dir, pattern string) ([]*packages.Package, error) {
+	key := dir + "|" + pattern
+	if pkgs, ok := p.pkgCache[key]; ok {
+		return pkgs, nil
+	}
+	pkgs, err := p.loadPackages(&packages.Config{
+		Mode: packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles | packages.NeedSyntax,
+		Dir:  dir,
+	}, pattern)
+	if err != nil {
+		return nil, fmt.Errorf("加载包 %s: %w", pattern, err)
+	}
+	if packages.PrintErrors(pkgs) > 0 {
+		return nil, fmt.Errorf("加载包 %s 失败", pattern)
+	}
+	p.pkgCache[key] = pkgs
+	return pkgs, nil
 }

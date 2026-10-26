@@ -31,21 +31,24 @@ func LowerFirstChar(str string) string {
 	return strings.ToLower(str[:1]) + str[1:]
 }
 
-// SwaggerName 获取swagger name
+// SwaggerName 获取swagger name：依次取 json / form / uri tag 里逗号前的名字（omitempty 等选项不进名字），
+// json 没给名字或是 "-" 时改看 form / uri；只有 json:"-" 时返回 "-"，调用方据此跳过该字段。
 func SwaggerName(field *ast.Field) string {
 	if field.Tag != nil {
 		tag := field.Tag.Value
-		name := ParseTag(tag, "json")
-		if name != "" {
-			return name
+		hidden := false
+		for _, key := range []string{"json", "form", "uri"} {
+			name, _, _ := strings.Cut(ParseTag(tag, key), ",")
+			if name == "-" {
+				hidden = hidden || key == "json"
+				continue
+			}
+			if name != "" {
+				return name
+			}
 		}
-		name = ParseTag(tag, "form")
-		if name != "" {
-			return name
-		}
-		name = ParseTag(tag, "uri")
-		if name != "" {
-			return name
+		if hidden {
+			return "-"
 		}
 	}
 	return field.Names[0].Name

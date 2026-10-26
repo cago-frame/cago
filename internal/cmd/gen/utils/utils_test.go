@@ -82,9 +82,29 @@ type Request struct {
 	require.Equal(t, "creates a resource.", GetTypeComment(decl, typeSpec))
 	require.Equal(t, "is the resource ID.", GetFieldComment(fields[0]))
 	require.Equal(t, "display name", GetFieldComment(fields[1]))
-	require.Equal(t, "id,omitempty", SwaggerName(fields[0]))
+	require.Equal(t, "id", SwaggerName(fields[0]), "名字里不带 omitempty 等选项")
 	require.Equal(t, "id,omitempty", ParseTag(fields[0].Tag.Value, "json"))
 	require.Empty(t, ParseTag(fields[0].Tag.Value, "uri"))
+}
+
+// SwaggerName 与 encoding/json 同口径：选项不进名字；json 没给名字（只有选项）或是 "-" 时改看 form / uri；
+// 只有 json:"-" 时返回 "-"，调用方据此跳过该字段。
+func TestSwaggerNameFollowsEncodingJSON(t *testing.T) {
+	tests := map[string]string{
+		"`json:\"name,omitempty\"`":         "name",
+		"`json:\",omitempty\" form:\"q\"`":  "q",
+		"`json:\",omitempty\"`":             "Field",
+		"`json:\"-\"`":                      "-",
+		"`json:\"-\" form:\"f\"`":           "f",
+		"`form:\"page,default=1\"`":         "page",
+		"`uri:\"id\" binding:\"required\"`": "id",
+	}
+	for tag, want := range tests {
+		t.Run(tag, func(t *testing.T) {
+			field := &ast.Field{Names: []*ast.Ident{ast.NewIdent("Field")}, Tag: &ast.BasicLit{Kind: token.STRING, Value: tag}}
+			require.Equal(t, want, SwaggerName(field))
+		})
+	}
 }
 
 func TestGetTypeCommentFromGroupedDeclaration(t *testing.T) {

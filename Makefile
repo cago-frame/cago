@@ -1,5 +1,5 @@
 
-GOLANGCI_LINT_VERSION ?= v2.12.2
+GOLANGCI_LINT_VERSION ?= v2.14.0
 GOLANGCI_LINT := $(CURDIR)/bin/golangci-lint
 GOLANGCI_LINT_BUILDER := $(CURDIR)/bin/golangci-lint-builder
 CAGOLINT_SOURCES := $(shell find tools/cagolint -type f \( -name '*.go' -o -name 'go.mod' -o -name 'go.sum' \))
