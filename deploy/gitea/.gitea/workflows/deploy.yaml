@@ -110,8 +110,7 @@ jobs:
         --set image.tag=${{ env.ENV }}.${{ steps.vars.outputs.sha_short }} --set image.repository=$REGISTRY/$REPOSITORY \
         --set etcdConfig.password=$ETCD_CONFIG_PASSWORD \
         --set appConfig.env=${{ env.ENV }} \
-        --set ingress.hosts[0].host=$DOMAIN \
-        --set ingress.tls[0].hosts[0]=$DOMAIN \
+        --set httpRoute.hostnames[0]=$DOMAIN \
         --set resources.requests.cpu=$RESOURCE_CPU \
         --set resources.requests.memory=$RESOURCE_MEMORY \
         --set autoscaling.enabled=$AUTO_SCALING \
