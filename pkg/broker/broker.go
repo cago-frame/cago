@@ -12,6 +12,7 @@ import (
 	wrap2 "github.com/cago-frame/cago/pkg/utils/wrap"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -99,9 +100,11 @@ func New(opts ...Option) (broker2.Broker, error) {
 			case "Publish":
 				topic := ctx.Args(0).(string)
 				data := ctx.Args(1).(*broker2.Message)
-				sctx, span := options.tracer.Start(sctx, "Broker."+ctx.Name(),
+				// span 名带 topic，便于在链路里区分是哪条消息
+				sctx, span := options.tracer.Start(sctx, "Broker.Publish "+topic,
 					trace.WithAttributes(
 						attribute.String("messaging.system", ret.String()),
+						attribute.String("messaging.operation", "publish"),
 						attribute.String("messaging.destination", topic),
 						attribute.String("messaging.destination_kind", "queue"),
 					),
@@ -113,17 +116,22 @@ func New(opts ...Option) (broker2.Broker, error) {
 				}
 				otel.GetTextMapPropagator().Inject(sctx, propagation.MapCarrier(data.Header))
 				ctx = ctx.WithContext(sctx)
+				ctx.Next()
+				recordSpanError(span, ctx.IsAbort())
+				return
 			case "Subscribe":
 				event := ctx.Args(1).(broker2.Event)
 				soptions := ctx.Args(2).(broker2.SubscribeOptions)
+				// 旧消息没有 Header，Extract 对 nil map 是安全的（取不到就新开一条 trace）
 				sctx = otel.GetTextMapPropagator().Extract(sctx, propagation.MapCarrier(event.Message().Header))
-				sctx, span := options.tracer.Start(sctx, "Broker."+ctx.Name(),
+				sctx, span := options.tracer.Start(sctx, "Broker.Subscribe "+event.Topic(),
 					trace.WithAttributes(
 						attribute.String("messaging.system", ret.String()),
 						attribute.String("messaging.operation", "process"),
 						attribute.String("messaging.destination", event.Topic()),
 						attribute.String("messaging.destination_kind", "queue"),
 						attribute.String("messaging.group", soptions.Group),
+						attribute.Int("messaging.attempted", event.Attempted()),
 					),
 					trace.WithSpanKind(trace.SpanKindConsumer),
 				)
@@ -132,9 +140,22 @@ func New(opts ...Option) (broker2.Broker, error) {
 					trace2.LoggerLabel(sctx)...,
 				))
 				ctx = ctx.WithContext(sctx)
+				ctx.Next()
+				// 处理失败要标成 Error：尾部采样按「失败必采」才能留下这条链路
+				recordSpanError(span, ctx.IsAbort())
+				return
 			}
 			ctx.Next()
 		})
 	}
 	return newWrap(ret, wrapHandler, options), nil
+}
+
+// recordSpanError 把发布/消费的失败记到 span 上
+func recordSpanError(span trace.Span, err error) {
+	if err == nil {
+		return
+	}
+	span.RecordError(err)
+	span.SetStatus(codes.Error, err.Error())
 }

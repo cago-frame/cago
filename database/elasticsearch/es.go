@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/cago-frame/cago/configs"
+	"github.com/cago-frame/cago/pkg/opentelemetry/trace"
+	oteltrace "go.opentelemetry.io/otel/trace"
 
 	"github.com/elastic/go-elasticsearch/v8"
 )
@@ -42,8 +44,19 @@ func Elasticsearch(ctx context.Context, cfg *configs.Config) error {
 			InsecureSkipVerify: config.InsecureSkipVerify,
 		}
 	}
+	client, err := elasticsearch.NewClient(clientConfig(config, tlsConfig, trace.Default()))
+	if err != nil {
+		return err
+	}
+	es = client
+	return nil
+}
+
+// clientConfig 构建客户端配置；配置了链路追踪（tp 非 nil）时给每个请求产生 span。
+// 请求要用 WithContext(ctx) 传入请求的 ctx，span 才会挂在调用方的链路下。
+func clientConfig(config *Config, tlsConfig *tls.Config, tp oteltrace.TracerProvider) elasticsearch.Config {
 	dialer := &net.Dialer{Timeout: time.Second * 4}
-	client, err := elasticsearch.NewClient(elasticsearch.Config{
+	esCfg := elasticsearch.Config{
 		Addresses: config.Address,
 		Username:  config.Username,
 		Password:  config.Password,
@@ -51,12 +64,12 @@ func Elasticsearch(ctx context.Context, cfg *configs.Config) error {
 			TLSClientConfig: tlsConfig,
 			DialContext:     dialer.DialContext,
 		},
-	})
-	if err != nil {
-		return err
 	}
-	es = client
-	return nil
+	if tp != nil {
+		// 不记录查询体：搜索词可能含用户输入，且会让 span 变大
+		esCfg.Instrumentation = elasticsearch.NewOpenTelemetryInstrumentation(tp, false)
+	}
+	return esCfg
 }
 
 var es *elasticsearch.Client
