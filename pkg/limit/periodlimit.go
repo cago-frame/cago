@@ -2,23 +2,36 @@ package limit
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/cago-frame/cago/pkg/logger"
-	"go.uber.org/zap"
 
 	"github.com/cago-frame/cago/pkg/utils"
 	"github.com/cago-frame/cago/pkg/utils/httputils"
 	"github.com/redis/go-redis/v9"
 )
 
-// TODO: redis lua脚本保证原子性
-//const script = `
-//`
+// takeScript 在 Redis 上一次执行完「计数 → 按需清理 → 未超额则记一笔并续期」：
+// 一次往返、原子执行，并发请求不会在计数与写入之间插队而超出配额。
+// KEYS[1]=key；ARGV: now, period, quota, member, expire(秒)。返回 1=放行，0=超额。
+// 清理条件与阈值沿用原实现：总数 >500 且为 500 的倍数时，删掉 score <= now-period*2+60 的记录。
+var takeScript = redis.NewScript(`
+local key = KEYS[1]
+local now = tonumber(ARGV[1])
+local period = tonumber(ARGV[2])
+local cnt = redis.call('ZCOUNT', key, now - period, '+inf')
+local total = redis.call('ZCARD', key)
+if total > 500 and total % 500 == 0 then
+  redis.call('ZREMRANGEBYSCORE', key, '-inf', now - period * 2 + 60)
+end
+if cnt < tonumber(ARGV[3]) then
+  redis.call('ZADD', key, now, ARGV[4])
+  redis.call('EXPIRE', key, ARGV[5])
+  return 1
+end
+return 0
+`)
 
 // PeriodLimit 周期限流器,redis zet实现滑动窗口
 type PeriodLimit struct {
@@ -47,39 +60,13 @@ func (p *PeriodLimit) key(key string) string {
 func (p *PeriodLimit) Take(ctx context.Context, key string) (func() error, error) {
 	key = p.key(key)
 	now := time.Now().Unix()
-	cnt, err := p.limitStore.ZCount(ctx, key, strconv.FormatInt(now-p.period, 10), "+inf").Result()
+	flag := utils.RandString(8, utils.Mix)
+	ok, err := takeScript.Run(ctx, p.limitStore, []string{key},
+		now, p.period, p.quota, flag, p.period+60).Int()
 	if err != nil {
-		if !errors.Is(err, redis.Nil) {
-			return nil, err
-		}
+		return nil, err
 	}
-	total, err := p.limitStore.ZCard(ctx, key).Result()
-	if err != nil {
-		if !errors.Is(err, redis.Nil) {
-			return nil, err
-		}
-	}
-	// 当总数为500的余数时,删除过期记录
-	if total > 500 && total%500 == 0 {
-		cleanupCtx := context.WithoutCancel(ctx)
-		go func() {
-			if err := p.limitStore.ZRemRangeByScore(cleanupCtx, key, "-inf", strconv.FormatInt(now-p.period*2+60, 10)).Err(); err != nil {
-				logger.Ctx(cleanupCtx).Error("删除过期记录失败", zap.String("key", key), zap.Error(err))
-			}
-		}()
-	}
-	if cnt < p.quota {
-		flag := utils.RandString(8, utils.Mix)
-		err := p.limitStore.ZAdd(ctx, key, redis.Z{
-			Score:  float64(now),
-			Member: flag,
-		}).Err()
-		if err != nil {
-			return nil, err
-		}
-		if err := p.limitStore.Expire(ctx, key, time.Duration(p.period+60)*time.Second).Err(); err != nil {
-			return nil, err
-		}
+	if ok == 1 {
 		// 删除本次记录
 		return func() error {
 			return p.limitStore.ZRem(ctx, key, flag).Err()
